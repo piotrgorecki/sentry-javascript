@@ -40,10 +40,7 @@ jobs:
       node_js: '10'
       script: scripts/test.sh
     - name: '@sentry/browser - integration tests'
-      node_js: '8'
-      addons:
-        chrome: stable
-        firefox: latest
+      node_js: '10'
       script: scripts/browser-integration.sh
     - name: 'raven-node [node v4]'
       if: branch = 4.x
