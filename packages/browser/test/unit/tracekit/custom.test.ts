@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { _computeStackTrace } from '../../src/tracekit';
+import { _computeStackTrace } from '../../../src/tracekit';
 
 describe('Tracekit - Custom Tests', () => {
   describe('should parse exceptions with native code frames', () => {

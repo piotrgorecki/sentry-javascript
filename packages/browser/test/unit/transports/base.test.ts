@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { BaseTransport } from '../../src/transports/base';
+import { BaseTransport } from '../../../src/transports/base';
 
 const testDsn = 'https://123@sentry.io/42';
 

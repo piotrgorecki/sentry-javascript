@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { BrowserBackend } from '../src/backend';
+import { BrowserBackend } from '../../src/backend';
 
 let backend: BrowserBackend;
 

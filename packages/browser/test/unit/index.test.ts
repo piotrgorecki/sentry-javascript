@@ -14,7 +14,7 @@ import {
   init,
   Integrations,
   Scope,
-} from '../src';
+} from '../../src';
 
 import { SimpleTransport } from './mocks/simpletransport';
 

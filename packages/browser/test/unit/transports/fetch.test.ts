@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
 
-import { Status, Transports } from '../../src';
+import { Status, Transports } from '../../../src';
 
 const testDsn = 'https://123@sentry.io/42';
 const transportUrl = 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7';
