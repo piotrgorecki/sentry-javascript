@@ -7,21 +7,21 @@
  */
 
 (function(global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined'
+  typeof exports === "object" && typeof module !== "undefined"
     ? (module.exports = factory())
-    : typeof define === 'function' && define.amd
+    : typeof define === "function" && define.amd
     ? define(factory)
     : (global.ES6Promise = factory());
 })(this, function() {
-  'use strict';
+  "use strict";
 
   function objectOrFunction(x) {
     var type = typeof x;
-    return x !== null && (type === 'object' || type === 'function');
+    return x !== null && (type === "object" || type === "function");
   }
 
   function isFunction(x) {
-    return typeof x === 'function';
+    return typeof x === "function";
   }
 
   var _isArray = void 0;
@@ -29,7 +29,7 @@
     _isArray = Array.isArray;
   } else {
     _isArray = function(x) {
-      return Object.prototype.toString.call(x) === '[object Array]';
+      return Object.prototype.toString.call(x) === "[object Array]";
     };
   }
 
@@ -63,17 +63,20 @@
     asap = asapFn;
   }
 
-  var browserWindow = typeof window !== 'undefined' ? window : undefined;
+  var browserWindow = typeof window !== "undefined" ? window : undefined;
   var browserGlobal = browserWindow || {};
-  var BrowserMutationObserver = browserGlobal.MutationObserver || browserGlobal.WebKitMutationObserver;
+  var BrowserMutationObserver =
+    browserGlobal.MutationObserver || browserGlobal.WebKitMutationObserver;
   var isNode =
-    typeof self === 'undefined' && typeof process !== 'undefined' && {}.toString.call(process) === '[object process]';
+    typeof self === "undefined" &&
+    typeof process !== "undefined" &&
+    {}.toString.call(process) === "[object process]";
 
   // test for web worker but not in IE10
   var isWorker =
-    typeof Uint8ClampedArray !== 'undefined' &&
-    typeof importScripts !== 'undefined' &&
-    typeof MessageChannel !== 'undefined';
+    typeof Uint8ClampedArray !== "undefined" &&
+    typeof importScripts !== "undefined" &&
+    typeof MessageChannel !== "undefined";
 
   // node
   function useNextTick() {
@@ -86,7 +89,7 @@
 
   // vertx
   function useVertxTimer() {
-    if (typeof vertxNext !== 'undefined') {
+    if (typeof vertxNext !== "undefined") {
       return function() {
         vertxNext(flush);
       };
@@ -98,7 +101,7 @@
   function useMutationObserver() {
     var iterations = 0;
     var observer = new BrowserMutationObserver(flush);
-    var node = document.createTextNode('');
+    var node = document.createTextNode("");
     observer.observe(node, { characterData: true });
 
     return function() {
@@ -141,7 +144,7 @@
 
   function attemptVertx() {
     try {
-      var vertx = Function('return this')().require('vertx');
+      var vertx = Function("return this")().require("vertx");
       vertxNext = vertx.runOnLoop || vertx.runOnContext;
       return useVertxTimer();
     } catch (e) {
@@ -157,7 +160,7 @@
     scheduleFlush = useMutationObserver();
   } else if (isWorker) {
     scheduleFlush = useMessageChannel();
-  } else if (browserWindow === undefined && typeof require === 'function') {
+  } else if (browserWindow === undefined && typeof require === "function") {
     scheduleFlush = attemptVertx();
   } else {
     scheduleFlush = useSetTimeout();
@@ -221,7 +224,11 @@
     /*jshint validthis:true */
     var Constructor = this;
 
-    if (object && typeof object === 'object' && object.constructor === Constructor) {
+    if (
+      object &&
+      typeof object === "object" &&
+      object.constructor === Constructor
+    ) {
       return object;
     }
 
@@ -241,11 +248,13 @@
   var REJECTED = 2;
 
   function selfFulfillment() {
-    return new TypeError('You cannot resolve a promise with itself');
+    return new TypeError("You cannot resolve a promise with itself");
   }
 
   function cannotReturnOwn() {
-    return new TypeError('A promises callback cannot return that same promise.');
+    return new TypeError(
+      "A promises callback cannot return that same promise."
+    );
   }
 
   function tryThen(then$$1, value, fulfillmentHandler, rejectionHandler) {
@@ -281,7 +290,7 @@
 
           reject(promise, reason);
         },
-        'Settle: ' + (promise._label || ' unknown promise')
+        "Settle: " + (promise._label || " unknown promise")
       );
 
       if (!sealed && error) {
@@ -480,7 +489,7 @@
   }
 
   function validationError() {
-    return new Error('Array Methods must be provided an Array');
+    return new Error("Array Methods must be provided an Array");
   }
 
   var Enumerator = (function() {
@@ -535,7 +544,7 @@
 
         if (_then === then && entry._state !== PENDING) {
           this._settledAt(entry._state, i, entry._result);
-        } else if (typeof _then !== 'function') {
+        } else if (typeof _then !== "function") {
           this._remaining--;
           this._result[i] = entry;
         } else if (c === Promise$2) {
@@ -717,7 +726,7 @@
 
     if (!isArray(entries)) {
       return new Constructor(function(_, reject) {
-        return reject(new TypeError('You must pass an array to race.'));
+        return reject(new TypeError("You must pass an array to race."));
       });
     } else {
       return new Constructor(function(resolve, reject) {
@@ -772,7 +781,9 @@
   }
 
   function needsResolver() {
-    throw new TypeError('You must pass a resolver function as the first argument to the promise constructor');
+    throw new TypeError(
+      "You must pass a resolver function as the first argument to the promise constructor"
+    );
   }
 
   function needsNew() {
@@ -892,8 +903,10 @@
       this._subscribers = [];
 
       if (noop !== resolver) {
-        typeof resolver !== 'function' && needsResolver();
-        this instanceof Promise ? initializePromise(this, resolver) : needsNew();
+        typeof resolver !== "function" && needsResolver();
+        this instanceof Promise
+          ? initializePromise(this, resolver)
+          : needsNew();
       }
     }
 
@@ -1163,15 +1176,17 @@
   function polyfill() {
     var local = void 0;
 
-    if (typeof global !== 'undefined') {
+    if (typeof global !== "undefined") {
       local = global;
-    } else if (typeof self !== 'undefined') {
+    } else if (typeof self !== "undefined") {
       local = self;
     } else {
       try {
-        local = Function('return this')();
+        local = Function("return this")();
       } catch (e) {
-        throw new Error('polyfill failed because global object is unavailable in this environment');
+        throw new Error(
+          "polyfill failed because global object is unavailable in this environment"
+        );
       }
     }
 
@@ -1185,7 +1200,7 @@
         // silently ignored
       }
 
-      if (promiseToString === '[object Promise]' && !P.cast) {
+      if (promiseToString === "[object Promise]" && !P.cast) {
         return;
       }
     }

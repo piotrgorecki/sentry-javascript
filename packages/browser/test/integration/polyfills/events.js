@@ -8,15 +8,31 @@
  */
 (function() {
   try {
-    new MouseEvent('click');
+    new MouseEvent("click");
     return false; // No need to polyfill
   } catch (e) {
     // Need to polyfill - fall through
   }
 
   var MouseEvent = function(eventType) {
-    var mouseEvent = document.createEvent('MouseEvent');
-    mouseEvent.initMouseEvent(eventType, true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    var mouseEvent = document.createEvent("MouseEvent");
+    mouseEvent.initMouseEvent(
+      eventType,
+      true,
+      true,
+      window,
+      0,
+      0,
+      0,
+      0,
+      0,
+      false,
+      false,
+      false,
+      false,
+      0,
+      null
+    );
     return mouseEvent;
   };
 
@@ -26,18 +42,39 @@
 
 (function() {
   try {
-    new KeyboardEvent('keypress');
+    new KeyboardEvent("keypress");
     return false; // No need to polyfill
   } catch (e) {
     // Need to polyfill - fall through
   }
 
   var KeyboardEvent = function(eventType) {
-    var keyboardEvent = document.createEvent('KeyboardEvent');
+    var keyboardEvent = document.createEvent("KeyboardEvent");
     if (keyboardEvent.initKeyboardEvent)
-      keyboardEvent.initKeyboardEvent(eventType, true, true, window, false, false, false, false, 'a', 0);
+      keyboardEvent.initKeyboardEvent(
+        eventType,
+        true,
+        true,
+        window,
+        false,
+        false,
+        false,
+        false,
+        "a",
+        0
+      );
     if (keyboardEvent.initKeyEvent)
-      keyboardEvent.initKeyEvent(eventType, true, true, window, false, false, false, false, 'a');
+      keyboardEvent.initKeyEvent(
+        eventType,
+        true,
+        true,
+        window,
+        false,
+        false,
+        false,
+        false,
+        "a"
+      );
     return keyboardEvent;
   };
 

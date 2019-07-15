@@ -1,24 +1,24 @@
-describe('API', function() {
-  it('should capture Sentry.captureMessage', function(done) {
+describe("API", function() {
+  it("should capture Sentry.captureMessage", function(done) {
     var iframe = this.iframe;
 
     iframeExecute(
       iframe,
       done,
       function() {
-        Sentry.captureMessage('Hello');
+        Sentry.captureMessage("Hello");
       },
       function(sentryData) {
         if (debounceAssertEventCount(sentryData, 1, done)) {
           var sentryData = sentryData[0];
-          assert.equal(sentryData.message, 'Hello');
+          assert.equal(sentryData.message, "Hello");
           done();
         }
-      },
+      }
     );
   });
 
-  it('should capture Sentry.captureException', function(done) {
+  it("should capture Sentry.captureException", function(done) {
     var iframe = this.iframe;
     iframeExecute(
       iframe,
@@ -33,15 +33,21 @@ describe('API', function() {
       function(sentryData) {
         if (debounceAssertEventCount(sentryData, 1, done)) {
           var sentryData = sentryData[0];
-          assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 2);
-          assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+          assert.isAtLeast(
+            sentryData.exception.values[0].stacktrace.frames.length,
+            2
+          );
+          assert.isAtMost(
+            sentryData.exception.values[0].stacktrace.frames.length,
+            4
+          );
           done();
         }
-      },
+      }
     );
   });
 
-  it('should generate a synthetic trace for captureException w/ non-errors', function(done) {
+  it("should generate a synthetic trace for captureException w/ non-errors", function(done) {
     var iframe = this.iframe;
     iframeExecute(
       iframe,
@@ -56,11 +62,11 @@ describe('API', function() {
           assert.isAtMost(sentryData.stacktrace.frames.length, 3);
           done();
         }
-      },
+      }
     );
   });
 
-  it('should have correct stacktrace order', function(done) {
+  it("should have correct stacktrace order", function(done) {
     var iframe = this.iframe;
     iframeExecute(
       iframe,
@@ -79,23 +85,29 @@ describe('API', function() {
             sentryData.exception.values[0].stacktrace.frames[
               sentryData.exception.values[0].stacktrace.frames.length - 1
             ].function,
-            'bar',
+            "bar"
           );
-          assert.isAtLeast(sentryData.exception.values[0].stacktrace.frames.length, 2);
-          assert.isAtMost(sentryData.exception.values[0].stacktrace.frames.length, 4);
+          assert.isAtLeast(
+            sentryData.exception.values[0].stacktrace.frames.length,
+            2
+          );
+          assert.isAtMost(
+            sentryData.exception.values[0].stacktrace.frames.length,
+            4
+          );
           done();
         }
-      },
+      }
     );
   });
 
-  it('should have exception with type and value', function(done) {
+  it("should have exception with type and value", function(done) {
     var iframe = this.iframe;
     iframeExecute(
       iframe,
       done,
       function() {
-        Sentry.captureException('this is my test exception');
+        Sentry.captureException("this is my test exception");
       },
       function(sentryData) {
         if (debounceAssertEventCount(sentryData, 1, done)) {
@@ -104,11 +116,11 @@ describe('API', function() {
           assert.isNotEmpty(sentryData.exception.values[0].type);
           done();
         }
-      },
+      }
     );
   });
 
-  it('should reject duplicate, back-to-back errors from captureException', function(done) {
+  it("should reject duplicate, back-to-back errors from captureException", function(done) {
     var iframe = this.iframe;
     iframeExecute(
       iframe,
@@ -125,22 +137,28 @@ describe('API', function() {
         }
 
         // Same exceptions, different stacktrace (different line number), don't dedupe
-        throwSameConsecutiveErrors('bar');
+        throwSameConsecutiveErrors("bar");
       },
       function(sentryData) {
         if (debounceAssertEventCount(sentryData, 5, done)) {
-          assert.match(sentryData[0].exception.values[0].value, /Exception no \d+/);
-          assert.match(sentryData[1].exception.values[0].value, /Exception no \d+/);
-          assert.equal(sentryData[2].exception.values[0].value, 'foo');
-          assert.equal(sentryData[3].exception.values[0].value, 'bar');
-          assert.equal(sentryData[4].exception.values[0].value, 'bar');
+          assert.match(
+            sentryData[0].exception.values[0].value,
+            /Exception no \d+/
+          );
+          assert.match(
+            sentryData[1].exception.values[0].value,
+            /Exception no \d+/
+          );
+          assert.equal(sentryData[2].exception.values[0].value, "foo");
+          assert.equal(sentryData[3].exception.values[0].value, "bar");
+          assert.equal(sentryData[4].exception.values[0].value, "bar");
           done();
         }
-      },
+      }
     );
   });
 
-  it('should not reject back-to-back errors with different stack traces', function(done) {
+  it("should not reject back-to-back errors with different stack traces", function(done) {
     var iframe = this.iframe;
     iframeExecute(
       iframe,
@@ -179,18 +197,27 @@ describe('API', function() {
         if (debounceAssertEventCount(sentryData, 3, done)) {
           // NOTE: regex because exact error message differs per-browser
           assert.match(sentryData[0].exception.values[0].value, /baz/);
-          assert.equal(sentryData[0].exception.values[0].type, 'ReferenceError');
+          assert.equal(
+            sentryData[0].exception.values[0].type,
+            "ReferenceError"
+          );
           assert.match(sentryData[1].exception.values[0].value, /baz/);
-          assert.equal(sentryData[1].exception.values[0].type, 'ReferenceError');
+          assert.equal(
+            sentryData[1].exception.values[0].type,
+            "ReferenceError"
+          );
           assert.match(sentryData[2].exception.values[0].value, /baz/);
-          assert.equal(sentryData[2].exception.values[0].type, 'ReferenceError');
+          assert.equal(
+            sentryData[2].exception.values[0].type,
+            "ReferenceError"
+          );
           done();
         }
-      },
+      }
     );
   });
 
-  it('should reject duplicate, back-to-back messages from captureMessage', function(done) {
+  it("should reject duplicate, back-to-back messages from captureMessage", function(done) {
     var iframe = this.iframe;
     iframeExecute(
       iframe,
@@ -203,11 +230,11 @@ describe('API', function() {
 
         // Same messages and same stacktrace, dedupe
         for (var i = 0; i < 2; i++) {
-          captureMessage('same message, same stacktrace');
+          captureMessage("same message, same stacktrace");
         }
 
         // Same messages, different stacktrace (different line number), don't dedupe
-        captureSameConsecutiveMessages('same message, different stacktrace');
+        captureSameConsecutiveMessages("same message, different stacktrace");
       },
       function(sentryData) {
         var eventCount = 5;
@@ -219,12 +246,19 @@ describe('API', function() {
         if (debounceAssertEventCount(sentryData, eventCount, done)) {
           assert.match(sentryData[0].message, /Message no \d+/);
           assert.match(sentryData[1].message, /Message no \d+/);
-          assert.equal(sentryData[2].message, 'same message, same stacktrace');
-          assert.equal(sentryData[3].message, 'same message, different stacktrace');
-          !IS_LOADER && assert.equal(sentryData[4].message, 'same message, different stacktrace');
+          assert.equal(sentryData[2].message, "same message, same stacktrace");
+          assert.equal(
+            sentryData[3].message,
+            "same message, different stacktrace"
+          );
+          !IS_LOADER &&
+            assert.equal(
+              sentryData[4].message,
+              "same message, different stacktrace"
+            );
           done();
         }
-      },
+      }
     );
   });
 });

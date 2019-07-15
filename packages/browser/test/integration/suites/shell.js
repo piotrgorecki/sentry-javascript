@@ -1,4 +1,4 @@
-var variants = ['frame', 'loader', 'loader-lazy-no'];
+var variants = ["frame", "loader", "loader-lazy-no"];
 
 for (var idx in variants) {
   (function() {
@@ -7,7 +7,7 @@ for (var idx in variants) {
     var IS_ASYNC_LOADER = !!filename.match(/^loader$/);
     var IS_SYNC_LOADER = !!filename.match(/^loader-lazy-no$/);
 
-    describe(filename + '.html', function() {
+    describe(filename + ".html", function() {
       this.timeout(30000);
 
       beforeEach(function(done) {

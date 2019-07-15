@@ -7,13 +7,17 @@ function iframeExecute(iframe, done, execute, assertCallback) {
     }
   };
   // use setTimeout so stack trace doesn't go all the way back to mocha test runner
-  iframe.contentWindow.eval('window.originalBuiltIns.setTimeout.call(window, ' + execute.toString() + ');');
+  iframe.contentWindow.eval(
+    "window.originalBuiltIns.setTimeout.call(window, " +
+      execute.toString() +
+      ");"
+  );
 }
 
 function createIframe(done, file) {
-  var iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = '/variants/' + file + '.html';
+  var iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src = "/variants/" + file + ".html";
   iframe.onload = function() {
     done();
   };
@@ -28,7 +32,7 @@ function debounceAssertEventCount(sentryData, count, done) {
   }
   clearTimeout(assertTimeout);
   assertTimeout = setTimeout(function() {
-    done(new Error('Did not receive ' + count + ' events'));
+    done(new Error("Did not receive " + count + " events"));
   }, 137);
   if (sentryData.length != count) {
     return false;
@@ -38,12 +42,12 @@ function debounceAssertEventCount(sentryData, count, done) {
 }
 
 function optional(title, condition) {
-  return condition ? '⚠ SKIPPED: ' + title : title;
+  return condition ? "⚠ SKIPPED: " + title : title;
 }
 
-var anchor = document.createElement('a');
+var anchor = document.createElement("a");
 function parseUrl(url) {
-  var out = { pathname: '', origin: '', protocol: '' };
+  var out = { pathname: "", origin: "", protocol: "" };
   if (!url) anchor.href = url;
   for (var key in out) {
     out[key] = anchor[key];
@@ -59,6 +63,6 @@ function isBelowIE11() {
 // (╯°□°）╯︵ ┻━┻
 function canReadFunctionName() {
   function foo() {}
-  if (foo.name === 'foo') return true;
+  if (foo.name === "foo") return true;
   return false;
 }
