@@ -41,7 +41,7 @@ describe('wrapped built-ins', function() {
       iframe,
       done,
       function() {
-        setTimeout(done, 33);
+        setTimeout(done, 137);
 
         var div = document.createElement('div');
         document.body.appendChild(div);
@@ -244,7 +244,7 @@ describe('wrapped built-ins', function() {
         var exceptionInterval = setInterval(function() {
           clearInterval(exceptionInterval);
           foo();
-        }, 33);
+        }, 137);
       },
       function(sentryData) {
         if (debounceAssertEventCount(sentryData, 1, done)) {
@@ -292,7 +292,7 @@ describe('wrapped built-ins', function() {
 
         xhr.open('GET', '/subjects/example.json');
         xhr.onreadystatechange = function() {
-          setTimeout(done, 33);
+          setTimeout(done, 137);
           // replace onreadystatechange with no-op so exception doesn't
           // fire more than once as XHR changes loading state
           xhr.onreadystatechange = function() {};

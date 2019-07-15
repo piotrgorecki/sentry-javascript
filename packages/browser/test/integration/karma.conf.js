@@ -64,7 +64,6 @@ module.exports = config => {
     reporters,
     customLaunchers,
     browsers,
-    // concurrency: isLocalRun ? Infinity : 1,
     client: {
       mocha: {
         reporter: 'html',
@@ -72,25 +71,20 @@ module.exports = config => {
       },
     },
     build: process.env.TRAVIS_BUILD_NUMBER,
-    // SauceLabs allows for 2 tunnels only, therefore some browsers will have to wait
-    // rather long time. Plus mobile emulators tend to require a lot of time to start up.
-    // 10 minutes should be more than enough to run all of them.
-    // browserNoActivityTimeout: 600000,
-    // browserDisconnectTimeout: 60000,
-    // captureTimeout: 600000,
-    captureTimeout: 600000,
-    retryLimit: 1,
-    browserDisconnectTimeout: 90000,
-    browserDisconnectTolerance: 1,
-    browserNoActivityTimeout: 90000,
+    // https://karma-runner.github.io/4.0/config/configuration-file.html
+    concurrency: isLocalRun ? Infinity : 2,
+    browserNoActivityTimeout: 30 * 60 * 1000,
+    // https://wiki.saucelabs.com/display/DOCS/Test+Configuration+Options
     sauceLabs: {
       startConnect: !isLocalRun,
-      // Just something "random" so we don't have to provide additional ENV var when running locally
-      tunnelIdentifier: process.env.TRAVIS_JOB_NUMBER || Math.ceil(Math.random() * 1337),
+      tunnelIdentifier: process.env.TRAVIS_JOB_NUMBER || Math.ceil(Math.random() * 1338),
       testName: '@sentry/browser' + (process.env.TRAVIS_JOB_NUMBER ? ' #' + process.env.TRAVIS_JOB_NUMBER : ''),
       public: 'public',
       recordScreenshots: false,
       recordVideo: false,
+      commandTimeout: 600,
+      idleTimeout: 1000,
+      extendedDebugging: true,
     },
   });
 };

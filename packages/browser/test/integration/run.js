@@ -1,9 +1,5 @@
 #!/usr/bin/env node
 
-// TODO: Get rid of sourcemaps tags
-// /base/artifacts/dedupe.js.map
-// /base/artifacts/bundle.js.map
-
 const fs = require('fs');
 const rimraf = require('rimraf');
 const karma = require('karma');

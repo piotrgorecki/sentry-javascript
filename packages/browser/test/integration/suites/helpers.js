@@ -29,7 +29,7 @@ function debounceAssertEventCount(sentryData, count, done) {
   clearTimeout(assertTimeout);
   assertTimeout = setTimeout(function() {
     done(new Error('Did not receive ' + count + ' events'));
-  }, 33);
+  }, 137);
   if (sentryData.length != count) {
     return false;
   }

@@ -47,7 +47,7 @@ describe('breadcrumbs', function() {
         xhr.open('GET', '/subjects/example.json');
         xhr.setRequestHeader('Content-type', 'application/json');
         xhr.send();
-        setTimeout(done, 333);
+        setTimeout(done, 137);
       },
       function() {
         if (IS_LOADER) {
@@ -75,7 +75,7 @@ describe('breadcrumbs', function() {
         iframe,
         done,
         function() {
-          setTimeout(done, 33);
+          setTimeout(done, 137);
           var xhr = new XMLHttpRequest();
           xhr.open('GET', 'https://example.com/api/1/store/');
           xhr.send('{"message":"someMessage","level":"warning"}');
@@ -241,7 +241,7 @@ describe('breadcrumbs', function() {
       function() {
         setTimeout(function() {
           Sentry.captureMessage('test');
-        }, 33);
+        }, 137);
 
         var input = document.getElementsByTagName('input')[0];
         input.addEventListener('click', undefined);
@@ -287,7 +287,7 @@ describe('breadcrumbs', function() {
       function() {
         setTimeout(function() {
           Sentry.captureMessage('test');
-        }, 33);
+        }, 137);
 
         var input = document.getElementsByTagName('input')[0];
         input.addEventListener('build', function(evt) {
@@ -323,7 +323,7 @@ describe('breadcrumbs', function() {
       function() {
         setTimeout(function() {
           Sentry.captureMessage('test');
-        }, 33);
+        }, 137);
 
         var input = document.getElementsByTagName('input')[0];
         input.addEventListener('build', undefined);
@@ -357,7 +357,7 @@ describe('breadcrumbs', function() {
       function() {
         setTimeout(function() {
           Sentry.captureMessage('test');
-        }, 33);
+        }, 137);
 
         // add an event listener to the input. we want to make sure that
         // our breadcrumbs still work even if the page has an event listener
@@ -398,7 +398,7 @@ describe('breadcrumbs', function() {
       function() {
         setTimeout(function() {
           Sentry.captureMessage('test');
-        }, 33);
+        }, 137);
 
         // click <input/>
         var click = new MouseEvent('click');
@@ -431,7 +431,7 @@ describe('breadcrumbs', function() {
       function() {
         setTimeout(function() {
           Sentry.captureMessage('test');
-        }, 33);
+        }, 137);
 
         var clickHandler = function() {};
 
@@ -474,7 +474,7 @@ describe('breadcrumbs', function() {
       function() {
         setTimeout(function() {
           Sentry.captureMessage('test');
-        }, 33);
+        }, 137);
 
         // click <input/>
         var click = new MouseEvent('click');
@@ -511,7 +511,7 @@ describe('breadcrumbs', function() {
       function() {
         setTimeout(function() {
           Sentry.captureMessage('test');
-        }, 33);
+        }, 137);
 
         // keypress <input/> twice
         var keypress1 = new KeyboardEvent('keypress');
@@ -544,7 +544,7 @@ describe('breadcrumbs', function() {
       iframe,
       done,
       function() {
-        setTimeout(done, 33);
+        setTimeout(done, 137);
         // some browsers trigger onpopstate for load / reset breadcrumb state
 
         // keypress <input/>
@@ -579,7 +579,7 @@ describe('breadcrumbs', function() {
       function() {
         setTimeout(function() {
           Sentry.captureMessage('test');
-        }, 33);
+        }, 137);
 
         // 1st keypress <input/>
         var keypress1 = new KeyboardEvent('keypress');
@@ -624,9 +624,9 @@ describe('breadcrumbs', function() {
       done,
       function() {
         setTimeout(function() {
-          setTimeout(done, 33);
+          setTimeout(done, 137);
           Sentry.captureMessage('test');
-        }, 33);
+        }, 137);
 
         // keypress <input/> twice
         var keypress1 = new KeyboardEvent('keypress');
@@ -740,7 +740,7 @@ describe('breadcrumbs', function() {
       iframe,
       done,
       function() {
-        setTimeout(done, 33);
+        setTimeout(done, 137);
 
         history.pushState({}, '', '/foo');
         history.pushState({}, '', '/bar?a=1#fragment');

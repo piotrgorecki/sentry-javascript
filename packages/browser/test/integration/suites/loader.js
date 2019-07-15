@@ -15,9 +15,9 @@ if (IS_LOADER) {
             });
           });
           setTimeout(function() {
-            setTimeout(done, 33);
+            setTimeout(done, 137);
             Sentry.captureMessage('test');
-          }, 33);
+          }, 137);
           undefinedMethod(); //trigger error
         },
         function(sentryData) {
@@ -57,9 +57,9 @@ if (IS_LOADER) {
             });
           });
           setTimeout(function() {
-            setTimeout(done, 33);
+            setTimeout(done, 137);
             Sentry.captureMessage('test');
-          }, 33);
+          }, 137);
           undefinedMethod(); //trigger error
         },
         function(sentryData) {

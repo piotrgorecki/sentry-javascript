@@ -146,7 +146,7 @@ describe('window.onerror', function() {
       iframe,
       done,
       function() {
-        setTimeout(done, 33);
+        setTimeout(done, 137);
         try {
           foo();
         } catch (e) {
