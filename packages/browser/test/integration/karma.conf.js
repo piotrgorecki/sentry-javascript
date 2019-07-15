@@ -35,12 +35,14 @@ module.exports = config => {
     console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║ INFO: Running integration tests in the local environment ║
-╚══════════════════════════════════════════════════════════╝`);
+╚══════════════════════════════════════════════════════════╝
+`);
   } else {
     console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║ INFO: Running integration tests in the SauceLabs environment ║
-╚══════════════════════════════════════════════════════════════╝`);
+╚══════════════════════════════════════════════════════════════╝
+`);
   }
 
   config.set({
@@ -62,6 +64,7 @@ module.exports = config => {
     reporters,
     customLaunchers,
     browsers,
+    // concurrency: isLocalRun ? Infinity : 1,
     client: {
       mocha: {
         reporter: 'html',
@@ -72,16 +75,22 @@ module.exports = config => {
     // SauceLabs allows for 2 tunnels only, therefore some browsers will have to wait
     // rather long time. Plus mobile emulators tend to require a lot of time to start up.
     // 10 minutes should be more than enough to run all of them.
-    browserNoActivityTimeout: 600000,
+    // browserNoActivityTimeout: 600000,
+    // browserDisconnectTimeout: 60000,
+    // captureTimeout: 600000,
     captureTimeout: 600000,
+    retryLimit: 1,
+    browserDisconnectTimeout: 90000,
+    browserDisconnectTolerance: 1,
+    browserNoActivityTimeout: 90000,
     sauceLabs: {
       startConnect: !isLocalRun,
       // Just something "random" so we don't have to provide additional ENV var when running locally
       tunnelIdentifier: process.env.TRAVIS_JOB_NUMBER || Math.ceil(Math.random() * 1337),
       testName: '@sentry/browser' + (process.env.TRAVIS_JOB_NUMBER ? ' #' + process.env.TRAVIS_JOB_NUMBER : ''),
-      // public: 'public',
-      // recordScreenshots: false,
-      // recordVideo: false,
+      public: 'public',
+      recordScreenshots: false,
+      recordVideo: false,
     },
   });
 };

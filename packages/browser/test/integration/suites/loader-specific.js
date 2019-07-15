@@ -5,6 +5,8 @@ for (var idx in variants) {
     var filename = variants[idx];
 
     describe(filename + '.html', function() {
+      this.timeout(30000);
+
       beforeEach(function(done) {
         this.iframe = createIframe(done, filename);
       });

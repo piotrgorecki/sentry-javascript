@@ -1,5 +1,4 @@
-var variants = ['frame'];
-// var variants = ['frame', 'loader', 'loader-lazy-no'];
+var variants = ['frame', 'loader', 'loader-lazy-no'];
 
 for (var idx in variants) {
   (function() {
@@ -9,6 +8,8 @@ for (var idx in variants) {
     var IS_SYNC_LOADER = !!filename.match(/^loader-lazy-no$/);
 
     describe(filename + '.html', function() {
+      this.timeout(30000);
+
       beforeEach(function(done) {
         this.iframe = createIframe(done, filename);
       });

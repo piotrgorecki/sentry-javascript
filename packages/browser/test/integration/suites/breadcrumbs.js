@@ -47,7 +47,7 @@ describe('breadcrumbs', function() {
         xhr.open('GET', '/subjects/example.json');
         xhr.setRequestHeader('Content-type', 'application/json');
         xhr.send();
-        setTimeout(done, 33);
+        setTimeout(done, 333);
       },
       function() {
         if (IS_LOADER) {

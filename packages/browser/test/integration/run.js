@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+// TODO: Get rid of sourcemaps tags
+// /base/artifacts/dedupe.js.map
+// /base/artifacts/bundle.js.map
+
 const fs = require('fs');
 const rimraf = require('rimraf');
 const karma = require('karma');
@@ -71,10 +75,9 @@ writeFile('artifacts/loader.js', readFile('../../src/loader.js').replace('../../
 
 writeFile(
   'artifacts/tests.js',
-  [
-    readFile('suites/helpers.js'),
-    replacePlaceholders('suites/shell.js') /**readFile('suites/loader-specific.js') */,
-  ].join('\n'),
+  [readFile('suites/helpers.js'), replacePlaceholders('suites/shell.js'), readFile('suites/loader-specific.js')].join(
+    '\n',
+  ),
 );
 
 new karma.Server(
@@ -83,7 +86,7 @@ new karma.Server(
     autoWatch: watchMode,
   }),
   exitCode => {
-    // rmdir('artifacts');
+    rmdir('artifacts');
     process.exit(exitCode);
   },
 ).start();
