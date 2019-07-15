@@ -1,3 +1,11 @@
+// All the functions below can be called within the iframe under the test
+
+function isChrome() {
+  return (
+    /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor) && !/Android/.test(navigator.userAgent)
+  );
+}
+
 function bar() {
   baz();
 }

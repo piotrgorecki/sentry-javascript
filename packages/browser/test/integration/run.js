@@ -5,55 +5,85 @@ const rimraf = require('rimraf');
 const karma = require('karma');
 const path = require('path');
 
-function concat(output, input) {
-  fs.writeFileSync(
-    path.resolve(__dirname, output),
-    input.map(file => fs.readFileSync(path.resolve(__dirname, file))).join('\n'),
-  );
+const debugMode = process.argv.some(x => x === '--debug');
+const watchMode = process.argv.some(x => x === '--watch');
+
+function log(...message) {
+  if (debugMode) {
+    console.log(...message);
+  }
 }
 
-function copy(from, to) {
+log(`
+╔═══════════════════════════════════╗
+║ INFO: Preparing tests environment ║
+╚═══════════════════════════════════╝
+`);
+
+function readFile(file) {
+  return fs.readFileSync(path.resolve(__dirname, file), 'utf8');
+}
+
+function writeFile(file, data) {
+  fs.writeFileSync(path.resolve(__dirname, file), data);
+}
+
+function copyFile(from, to) {
+  log('Copying file:\n\t=> from:', from, '\n\t=> to:', to);
   fs.copyFileSync(path.resolve(__dirname, from), path.resolve(__dirname, to));
 }
 
-const artifactsDir = path.resolve(__dirname, './artifacts');
+function concatFiles(outputFile, inputFiles) {
+  log('Concatinating:\n\t=> from:', inputFiles.join(', '), '\n\t=> to:', outputFile);
+  writeFile(outputFile, inputFiles.map(file => readFile(file)).join('\n'));
+}
 
-rimraf.sync(artifactsDir);
-fs.mkdirSync(artifactsDir);
+function replacePlaceholders(templateFile) {
+  log('Replacing placeholders for file:', templateFile);
 
-concat('./artifacts/polyfills.js', [
-  './polyfills/promise.js',
-  './polyfills/fetch.js',
-  './polyfills/raf.js',
-  './polyfills/events.js',
+  return readFile(templateFile).replace(/\{\{ ?([a-zA-Z-_\.\/]+) ?\}\}/g, match => {
+    const matchFile = match.slice(2, -2).trim();
+    log('\t=> matched placeholder:', matchFile);
+    return readFile(matchFile);
+  });
+}
+
+function mkdir(dirpath) {
+  fs.mkdirSync(path.resolve(__dirname, dirpath));
+}
+
+function rmdir(dirpath) {
+  rimraf.sync(path.resolve(__dirname, dirpath));
+}
+
+rmdir('artifacts');
+mkdir('artifacts');
+
+concatFiles('artifacts/polyfills.js', [
+  'polyfills/promise.js',
+  'polyfills/fetch.js',
+  'polyfills/raf.js',
+  'polyfills/events.js',
 ]);
-concat('./artifacts/setup.js', ['../../../integrations/build/dedupe.js', './common/init.js', './common/methods.js']);
-copy('../../src/loader.js', './artifacts/loader.js');
-copy('../../build/bundle.js', './artifacts/sdk.js');
+concatFiles('artifacts/setup.js', ['../../../integrations/build/dedupe.js', 'common/init.js', 'common/functions.js']);
+copyFile('../../build/bundle.js', 'artifacts/sdk.js');
+writeFile('artifacts/loader.js', readFile('../../src/loader.js').replace('../../build/bundle.js', '/artifacts/sdk.js'));
 
-const testsShell = fs.readFileSync(path.resolve(__dirname, './suites/shell.js'), 'utf8');
-const helpers = fs.readFileSync(path.resolve(__dirname, './suites/helpers.js'));
-const loaderSpecificTests = fs.readFileSync(path.resolve(__dirname, './suites/loader-specific.js'));
-
-const generatedTests = testsShell
-  .replace('// suites/config.js', fs.readFileSync(path.resolve(__dirname, './suites/config.js')))
-  .replace('// suites/api.js', fs.readFileSync(path.resolve(__dirname, './suites/api.js')))
-  .replace('// suites/onerror.js', fs.readFileSync(path.resolve(__dirname, './suites/onerror.js')))
-  .replace('// suites/builtins.js', fs.readFileSync(path.resolve(__dirname, './suites/builtins.js')))
-  .replace('// suites/breadcrumbs.js', fs.readFileSync(path.resolve(__dirname, './suites/breadcrumbs.js')))
-  .replace('// suites/loader-specific.js', fs.readFileSync(path.resolve(__dirname, './suites/loader-specific.js')));
-
-fs.writeFileSync(
-  path.resolve(__dirname, './artifacts/tests.js'),
-  [helpers, generatedTests, loaderSpecificTests].join('\n'),
+writeFile(
+  'artifacts/tests.js',
+  [
+    readFile('suites/helpers.js'),
+    replacePlaceholders('suites/shell.js') /**readFile('suites/loader-specific.js') */,
+  ].join('\n'),
 );
 
 new karma.Server(
   karma.config.parseConfig(path.resolve(__dirname, 'karma.conf.js'), {
-    // singleRun: false,
+    singleRun: !watchMode,
+    autoWatch: watchMode,
   }),
   exitCode => {
-    console.log('Karma has exited with ' + exitCode);
-    rimraf.sync(artifactsDir);
+    // rmdir('artifacts');
+    process.exit(exitCode);
   },
 ).start();

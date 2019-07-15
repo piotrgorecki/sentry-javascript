@@ -13,7 +13,7 @@ function iframeExecute(iframe, done, execute, assertCallback) {
 function createIframe(done, file) {
   var iframe = document.createElement('iframe');
   iframe.style.display = 'none';
-  iframe.src = './base/test/integration/' + file + '.html';
+  iframe.src = '/variants/' + file + '.html';
   iframe.onload = function() {
     done();
   };
@@ -29,7 +29,7 @@ function debounceAssertEventCount(sentryData, count, done) {
   clearTimeout(assertTimeout);
   assertTimeout = setTimeout(function() {
     done(new Error('Did not receive ' + count + ' events'));
-  }, 10);
+  }, 33);
   if (sentryData.length != count) {
     return false;
   }
@@ -38,7 +38,7 @@ function debounceAssertEventCount(sentryData, count, done) {
 }
 
 function optional(title, condition) {
-  return condition ? '⚠️   Skipped: ' + title : title;
+  return condition ? '⚠ SKIPPED: ' + title : title;
 }
 
 var anchor = document.createElement('a');
@@ -49,12 +49,6 @@ function parseUrl(url) {
     out[key] = anchor[key];
   }
   return out;
-}
-
-function isChrome() {
-  return (
-    /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor) && !/Android/.test(navigator.userAgent)
-  );
 }
 
 function isBelowIE11() {
