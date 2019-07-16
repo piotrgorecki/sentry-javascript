@@ -27,7 +27,7 @@ describe("window.onerror", function() {
     );
   });
 
-  it.only("should catch thrown strings", function(done) {
+  it("should catch thrown strings", function(done) {
     var iframe = this.iframe;
 
     iframeExecute(
@@ -38,7 +38,7 @@ describe("window.onerror", function() {
         // sure it is 1) not caught by instrumentation 2) doesn't trigger
         // "Script error"
         var script = document.createElement("script");
-        script.src = "../subjects/throw-string.js";
+        script.src = "/base/subjects/throw-string.js";
         script.onload = function() {
           done();
         };
@@ -57,7 +57,7 @@ describe("window.onerror", function() {
           // but not all - falls back to frame url
           assert.match(
             sentryData.exception.values[0].stacktrace.frames[0].filename,
-            /\/subjects\/throw-string.js/
+            /(\/subjects\/throw-string.js|\/base\/variants\/)/
           );
           assert.match(
             sentryData.exception.values[0].stacktrace.frames[0]["function"],
@@ -80,7 +80,7 @@ describe("window.onerror", function() {
         // sure it is 1) not caught by instrumentation 2) doesn't trigger
         // "Script error"
         var script = document.createElement("script");
-        script.src = "/subjects/throw-object.js";
+        script.src = "/base/subjects/throw-object.js";
         script.onload = function() {
           done();
         };
@@ -105,7 +105,7 @@ describe("window.onerror", function() {
           // but not all - falls back to frame url
           assert.match(
             sentryData.exception.values[0].stacktrace.frames[0].filename,
-            /\/subjects\/throw-object.js/
+            /(\/subjects\/throw-object.js|\/base\/variants\/)/
           );
           assert.match(
             sentryData.exception.values[0].stacktrace.frames[0]["function"],
@@ -128,7 +128,7 @@ describe("window.onerror", function() {
         // sure it is 1) not caught by instrumentation 2) doesn't trigger
         // "Script error"
         var script = document.createElement("script");
-        script.src = "/subjects/throw-error.js";
+        script.src = "/base/subjects/throw-error.js";
         script.onload = function() {
           done();
         };

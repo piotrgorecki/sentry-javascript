@@ -1,25 +1,25 @@
 module.exports = {
-  bs_chrome: {
-    base: "BrowserStack",
-    browser: "Chrome",
-    browser_version: "latest",
-    os: "Windows",
-    os_version: "10",
-  },
-  bs_firefox: {
-    base: "BrowserStack",
-    browser: "Firefox",
-    browser_version: "latest",
-    os: "Windows",
-    os_version: "10",
-  },
-  bs_edge: {
-    base: "BrowserStack",
-    browser: "Edge",
-    browser_version: "latest",
-    os: "Windows",
-    os_version: "10",
-  },
+  // bs_chrome: {
+  //   base: "BrowserStack",
+  //   browser: "Chrome",
+  //   browser_version: "latest",
+  //   os: "Windows",
+  //   os_version: "10",
+  // },
+  // bs_firefox: {
+  //   base: "BrowserStack",
+  //   browser: "Firefox",
+  //   browser_version: "latest",
+  //   os: "Windows",
+  //   os_version: "10",
+  // },
+  // bs_edge: {
+  //   base: "BrowserStack",
+  //   browser: "Edge",
+  //   browser_version: "latest",
+  //   os: "Windows",
+  //   os_version: "10",
+  // },
   bs_ie11: {
     base: "BrowserStack",
     browser: "IE",
@@ -34,14 +34,13 @@ module.exports = {
     os: "Windows",
     os_version: "8",
   },
-  bs_safari: {
-    base: "BrowserStack",
-    browser: "Safari",
-    browser_version: "latest",
-    os: "OS X",
-    os_version: "Mojave",
-  },
-
+  // bs_safari: {
+  //   base: "BrowserStack",
+  //   browser: "Safari",
+  //   browser_version: "latest",
+  //   os: "OS X",
+  //   os_version: "Mojave",
+  // },
   // sl_ios: {
   //   base: 'SauceLabs',
   //   platform: 'iOS',

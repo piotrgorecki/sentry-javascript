@@ -5,18 +5,8 @@ const browserstackAccessKey = process.env.BROWSERSTACK_ACCESS_KEY;
 const isLocalRun =
   browserstackUsername === undefined || browserstackAccessKey === undefined;
 
-const customLaunchers = isLocalRun
-  ? {
-      FirefoxHeadless: {
-        base: "Firefox",
-        flags: ["-headless"],
-      },
-    }
-  : require("./browsers.js");
-const browsers = isLocalRun
-  ? ["FirefoxHeadless"]
-  : // ? ["ChromeHeadless", "FirefoxHeadless"]
-    Object.keys(customLaunchers);
+const customLaunchers = isLocalRun ? {} : require("./browsers.js");
+const browsers = isLocalRun ? ["ChromeHeadless"] : Object.keys(customLaunchers);
 
 const plugins = [
   "karma-mocha",
@@ -28,7 +18,6 @@ const reporters = ["mocha"];
 
 if (isLocalRun) {
   plugins.push("karma-chrome-launcher");
-  plugins.push("karma-firefox-launcher");
 } else {
   plugins.push("karma-browserstack-launcher");
   reporters.push("BrowserStack");
@@ -59,8 +48,7 @@ module.exports = config => {
     console.log(`
 ╔═════════════════════════════════════════════════════════════════╗
 ║ INFO: Running integration tests in the BrowserStack environment ║
-╚═════════════════════════════════════════════════════════════════╝
-`);
+╚═════════════════════════════════════════════════════════════════╝`);
   }
 
   config.set({
@@ -70,11 +58,8 @@ module.exports = config => {
     autoWatch: false,
     basePath: __dirname,
     proxies: {
-      "/variants/": "/base/variants/",
-      "/subjects/": "/base/subjects/",
-      "/artifacts/": "/base/artifacts/",
       // Required for non-string fetch url test
-      "/variants/123": "/base/subjects/123",
+      "/base/variants/123": "/base/subjects/123",
     },
     frameworks: ["mocha", "chai", "sinon"],
     files,
@@ -92,6 +77,5 @@ module.exports = config => {
     },
     build: process.env.TRAVIS_BUILD_NUMBER,
     concurrency: 1,
-    // concurrency: isLocalRun ? Infinity : 1,
   });
 };

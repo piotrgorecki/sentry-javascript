@@ -5,11 +5,12 @@ const rimraf = require("rimraf");
 const karma = require("karma");
 const path = require("path");
 
-const debugMode = process.argv.some(x => x === "--debug");
-const watchMode = process.argv.some(x => x === "--watch");
+const isDebugMode = process.argv.some(x => x === "--debug");
+const isWatchMode = process.argv.some(x => x === "--watch");
+const isManualMode = process.argv.some(x => x === "--manual");
 
 function log(...message) {
-  if (debugMode) {
+  if (isDebugMode) {
     console.log(...message);
   }
 }
@@ -72,6 +73,9 @@ concatFiles("artifacts/polyfills.js", [
   "polyfills/fetch.js",
   "polyfills/raf.js",
   "polyfills/events.js",
+  "polyfills/assign.js",
+  "polyfills/nan.js",
+  "polyfills/includes.js",
 ]);
 
 writeFile(
@@ -99,7 +103,7 @@ writeFile(
   "artifacts/loader.js",
   readFile("../../src/loader.js").replace(
     "../../build/bundle.js",
-    "/artifacts/sdk.js"
+    "/base/artifacts/sdk.js"
   )
 );
 
@@ -112,13 +116,25 @@ writeFile(
   ].join("\n")
 );
 
-new karma.Server(
-  karma.config.parseConfig(path.resolve(__dirname, "karma.conf.js"), {
-    singleRun: !watchMode,
-    autoWatch: watchMode,
+const karmaConfigOverrides = {
+  ...(isWatchMode && {
+    singleRun: false,
+    autoWatch: true,
   }),
+  ...(isManualMode && {
+    singleRun: false,
+    customLaunchers: {},
+    browsers: [],
+  }),
+};
+
+new karma.Server(
+  karma.config.parseConfig(
+    path.resolve(__dirname, "karma.conf.js"),
+    karmaConfigOverrides
+  ),
   exitCode => {
-    rmdir("artifacts");
-    // process.exit(exitCode);
+    // rmdir("artifacts");
+    process.exit(exitCode);
   }
 ).start();

@@ -1,11 +1,12 @@
 /**
- * DOM4 MouseEvent and KeyboardEvent Polyfills
+ * MouseEvent, KeyboardEvent and CustomEvent Polyfills
  *
  * References:
  * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/MouseEvent
- * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/MouseEvent#Polyfill
  * https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/KeyboardEvent
+ * https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent
  */
+
 (function() {
   try {
     new MouseEvent("click");
@@ -80,4 +81,22 @@
 
   KeyboardEvent.prototype = Event.prototype;
   window.KeyboardEvent = KeyboardEvent;
+})();
+
+(function() {
+  if (typeof window.CustomEvent === "function") return false;
+
+  function CustomEvent(event, params) {
+    params = params || { bubbles: false, cancelable: false, detail: null };
+    var evt = document.createEvent("CustomEvent");
+    evt.initCustomEvent(
+      event,
+      params.bubbles,
+      params.cancelable,
+      params.detail
+    );
+    return evt;
+  }
+
+  window.CustomEvent = CustomEvent;
 })();

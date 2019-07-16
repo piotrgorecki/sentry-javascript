@@ -1,19 +1,21 @@
 // store references to original, unwrapped built-ins in order to:
 // - get a clean, unwrapped setTimeout (so stack traces don't include frames from mocha)
 // - make assertions re: wrapped functions
-window.originalBuiltIns = {
-  setTimeout: setTimeout,
-  setInterval: setInterval,
-  requestAnimationFrame: requestAnimationFrame,
-  xhrProtoOpen: XMLHttpRequest.prototype.open,
-  headAddEventListener: document.head.addEventListener, // use <head> 'cause body isn't closed yet
-  headRemoveEventListener: document.head.removeEventListener,
-  consoleDebug: console.debug,
-  consoleInfo: console.info,
-  consoleWarn: console.warn,
-  consoleError: console.error,
-  consoleLog: console.log,
-};
+(function() {
+  window.originalBuiltIns = {
+    setTimeout: setTimeout,
+    setInterval: setInterval,
+    requestAnimationFrame: requestAnimationFrame,
+    xhrProtoOpen: XMLHttpRequest.prototype.open,
+    headAddEventListener: document.head.addEventListener, // use <head> 'cause body isn't closed yet
+    headRemoveEventListener: document.head.removeEventListener,
+    consoleDebug: console.debug,
+    consoleInfo: console.info,
+    consoleWarn: console.warn,
+    consoleError: console.error,
+    consoleLog: console.log,
+  };
+})();
 
 // expose events so we can access them in our tests
 window.sentryData = [];

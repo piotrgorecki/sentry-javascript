@@ -17,7 +17,7 @@ function iframeExecute(iframe, done, execute, assertCallback) {
 function createIframe(done, file) {
   var iframe = document.createElement("iframe");
   iframe.style.display = "none";
-  iframe.src = "/variants/" + file + ".html";
+  iframe.src = "/base/variants/" + file + ".html";
   iframe.onload = function() {
     done();
   };

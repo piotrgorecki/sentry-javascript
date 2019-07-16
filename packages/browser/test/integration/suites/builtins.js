@@ -338,7 +338,7 @@ describe("wrapped built-ins", function() {
         // since this is what jQuery does
         // https://github.com/jquery/jquery/blob/master/src/ajax/xhr.js#L37
 
-        xhr.open("GET", "/subjects/example.json");
+        xhr.open("GET", "/base/subjects/example.json");
         xhr.onreadystatechange = function() {
           setTimeout(done, 137);
           // replace onreadystatechange with no-op so exception doesn't
