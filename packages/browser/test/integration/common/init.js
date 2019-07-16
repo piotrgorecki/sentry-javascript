@@ -22,7 +22,7 @@ var breadcrumbs = [];
 
 function initSDK() {
   Sentry.init({
-    dsn: "https://public@example.com/1",
+    dsn: "http://public@localhost/1",
     integrations: [new Sentry.Integrations.Dedupe()],
     attachStacktrace: true,
     // TODO: use BeforeSend instead?
@@ -70,6 +70,7 @@ function initSDK() {
       }
 
       breadcrumbs.push(breadcrumb);
+
       return breadcrumb;
     },
   });

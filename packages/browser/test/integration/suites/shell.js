@@ -1,4 +1,3 @@
-// var variants = ["loader"];
 var variants = ["frame", "loader", "loader-lazy-no"];
 
 function runVariant(variant) {
@@ -7,8 +6,6 @@ function runVariant(variant) {
   var IS_SYNC_LOADER = !!variant.match(/^loader-lazy-no$/);
 
   describe(variant, function() {
-    // this.timeout(30000);
-
     var sandbox;
 
     beforeEach(function(done) {

@@ -18,13 +18,19 @@ function runInSandbox(sandbox, options, code) {
   sandbox.contentWindow.resolveTest = resolveTest;
 
   var finalize = function() {
+    var summary = {
+      events: events,
+      breadcrumbs: breadcrumbs,
+      window: window,
+    };
+
     Sentry.onLoad(function() {
       Sentry.flush()
         .then(function() {
-          window.resolveTest(events, breadcrumbs);
+          window.resolveTest(summary);
         })
         .catch(function() {
-          window.resolveTest(events, breadcrumbs);
+          window.resolveTest(summary);
         });
     });
   };

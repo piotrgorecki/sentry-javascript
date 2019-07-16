@@ -6,8 +6,6 @@ var loaderVariants = [
 for (var idx in loaderVariants) {
   (function() {
     describe(loaderVariants[idx], function() {
-      // this.timeout(30000);
-
       var sandbox;
 
       beforeEach(function(done) {
@@ -15,44 +13,29 @@ for (var idx in loaderVariants) {
       });
 
       afterEach(function() {
-        document.body.removeChild(this.iframe);
+        document.body.removeChild(sandbox);
       });
 
       describe("Loader Specific Tests - With no Global init() call", function() {
-        it("should add breadcrumb from onLoad callback from undefined error", function(done) {
-          var iframe = this.iframe;
-
-          iframeExecute(
-            iframe,
-            done,
-            function() {
-              Sentry.onLoad(function() {
-                initSDK();
-                Sentry.addBreadcrumb({
-                  category: "auth",
-                  message: "testing loader",
-                  level: "error",
-                });
+        it("should add breadcrumb from onLoad callback from undefined error", function() {
+          return runInSandbox(sandbox, function() {
+            Sentry.onLoad(function() {
+              initSDK();
+              Sentry.addBreadcrumb({
+                category: "auth",
+                message: "testing loader",
+                level: "error",
               });
-              setTimeout(function() {
-                setTimeout(done, 137);
-                Sentry.captureMessage("test");
-              }, 137);
-              undefinedMethod(); //trigger error
-            },
-            function(sentryData) {
-              if (debounceAssertEventCount(sentryData, 1, done)) {
-                var sentryData = iframe.contentWindow.sentryData[0];
-                assert.ok(sentryData.breadcrumbs);
-                assert.lengthOf(sentryData.breadcrumbs, 1);
-                assert.equal(
-                  sentryData.breadcrumbs[0].message,
-                  "testing loader"
-                );
-                done();
-              }
-            }
-          );
+            });
+            setTimeout(function() {
+              Sentry.captureMessage("test");
+            });
+            undefinedMethod();
+          }).then(function(summary) {
+            assert.ok(summary.breadcrumbs);
+            assert.lengthOf(summary.breadcrumbs, 1);
+            assert.equal(summary.breadcrumbs[0].message, "testing loader");
+          });
         });
       });
     });

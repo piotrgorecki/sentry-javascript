@@ -1,9 +1,9 @@
-describe.only("API", function() {
+describe("API", function() {
   it("should capture Sentry.captureMessage", function() {
     return runInSandbox(sandbox, function() {
       Sentry.captureMessage("Hello");
-    }).then(function(events, breadcrumbs) {
-      assert.equal(events[0].message, "Hello");
+    }).then(function(summary) {
+      assert.equal(summary.events[0].message, "Hello");
     });
   });
 
@@ -14,13 +14,13 @@ describe.only("API", function() {
       } catch (e) {
         Sentry.captureException(e);
       }
-    }).then(function(events, breadcrumbs) {
+    }).then(function(summary) {
       assert.isAtLeast(
-        events[0].exception.values[0].stacktrace.frames.length,
+        summary.events[0].exception.values[0].stacktrace.frames.length,
         2
       );
       assert.isAtMost(
-        events[0].exception.values[0].stacktrace.frames.length,
+        summary.events[0].exception.values[0].stacktrace.frames.length,
         4
       );
     });
@@ -29,9 +29,9 @@ describe.only("API", function() {
   it("should generate a synthetic trace for captureException w/ non-errors", function() {
     return runInSandbox(sandbox, function() {
       throwNonError();
-    }).then(function(events, breadcrumbs) {
-      assert.isAtLeast(events[0].stacktrace.frames.length, 1);
-      assert.isAtMost(events[0].stacktrace.frames.length, 3);
+    }).then(function(summary) {
+      assert.isAtLeast(summary.events[0].stacktrace.frames.length, 1);
+      assert.isAtMost(summary.events[0].stacktrace.frames.length, 3);
     });
   });
 
@@ -42,19 +42,19 @@ describe.only("API", function() {
       } catch (e) {
         Sentry.captureException(e);
       }
-    }).then(function(events, breadcrumbs) {
+    }).then(function(summary) {
       assert.equal(
-        events[0].exception.values[0].stacktrace.frames[
-          events[0].exception.values[0].stacktrace.frames.length - 1
+        summary.events[0].exception.values[0].stacktrace.frames[
+          summary.events[0].exception.values[0].stacktrace.frames.length - 1
         ].function,
         "bar"
       );
       assert.isAtLeast(
-        events[0].exception.values[0].stacktrace.frames.length,
+        summary.events[0].exception.values[0].stacktrace.frames.length,
         2
       );
       assert.isAtMost(
-        events[0].exception.values[0].stacktrace.frames.length,
+        summary.events[0].exception.values[0].stacktrace.frames.length,
         4
       );
     });
@@ -63,9 +63,9 @@ describe.only("API", function() {
   it("should have exception with type and value", function() {
     return runInSandbox(sandbox, function() {
       Sentry.captureException("this is my test exception");
-    }).then(function(events, breadcrumbs) {
-      assert.isNotEmpty(events[0].exception.values[0].value);
-      assert.isNotEmpty(events[0].exception.values[0].type);
+    }).then(function(summary) {
+      assert.isNotEmpty(summary.events[0].exception.values[0].value);
+      assert.isNotEmpty(summary.events[0].exception.values[0].type);
     });
   });
 
@@ -83,12 +83,18 @@ describe.only("API", function() {
 
       // Same exceptions, different stacktrace (different line number), don't dedupe
       throwSameConsecutiveErrors("bar");
-    }).then(function(events, breadcrumbs) {
-      assert.match(events[0].exception.values[0].value, /Exception no \d+/);
-      assert.match(events[1].exception.values[0].value, /Exception no \d+/);
-      assert.equal(events[2].exception.values[0].value, "foo");
-      assert.equal(events[3].exception.values[0].value, "bar");
-      assert.equal(events[4].exception.values[0].value, "bar");
+    }).then(function(summary) {
+      assert.match(
+        summary.events[0].exception.values[0].value,
+        /Exception no \d+/
+      );
+      assert.match(
+        summary.events[1].exception.values[0].value,
+        /Exception no \d+/
+      );
+      assert.equal(summary.events[2].exception.values[0].value, "foo");
+      assert.equal(summary.events[3].exception.values[0].value, "bar");
+      assert.equal(summary.events[4].exception.values[0].value, "bar");
     });
   });
 
@@ -122,14 +128,23 @@ describe.only("API", function() {
       } catch (e) {
         Sentry.captureException(e);
       }
-    }).then(function(events, breadcrumbs) {
+    }).then(function(summary) {
       // NOTE: regex because exact error message differs per-browser
-      assert.match(events[0].exception.values[0].value, /baz/);
-      assert.equal(events[0].exception.values[0].type, "ReferenceError");
-      assert.match(events[1].exception.values[0].value, /baz/);
-      assert.equal(events[1].exception.values[0].type, "ReferenceError");
-      assert.match(events[2].exception.values[0].value, /baz/);
-      assert.equal(events[2].exception.values[0].type, "ReferenceError");
+      assert.match(summary.events[0].exception.values[0].value, /baz/);
+      assert.equal(
+        summary.events[0].exception.values[0].type,
+        "ReferenceError"
+      );
+      assert.match(summary.events[1].exception.values[0].value, /baz/);
+      assert.equal(
+        summary.events[1].exception.values[0].type,
+        "ReferenceError"
+      );
+      assert.match(summary.events[2].exception.values[0].value, /baz/);
+      assert.equal(
+        summary.events[2].exception.values[0].type,
+        "ReferenceError"
+      );
     });
   });
 
@@ -147,15 +162,21 @@ describe.only("API", function() {
 
       // Same messages, different stacktrace (different line number), don't dedupe
       captureSameConsecutiveMessages("same message, different stacktrace");
-    }).then(function(events, breadcrumbs) {
+    }).then(function(summary) {
       // On the async loader since we replay all messages from the same location,
-      // so we actually only receive 4 events
-      assert.match(events[0].message, /Message no \d+/);
-      assert.match(events[1].message, /Message no \d+/);
-      assert.equal(events[2].message, "same message, same stacktrace");
-      assert.equal(events[3].message, "same message, different stacktrace");
+      // so we actually only receive 4 summary.events
+      assert.match(summary.events[0].message, /Message no \d+/);
+      assert.match(summary.events[1].message, /Message no \d+/);
+      assert.equal(summary.events[2].message, "same message, same stacktrace");
+      assert.equal(
+        summary.events[3].message,
+        "same message, different stacktrace"
+      );
       !IS_LOADER &&
-        assert.equal(events[4].message, "same message, different stacktrace");
+        assert.equal(
+          summary.events[4].message,
+          "same message, different stacktrace"
+        );
     });
   });
 });

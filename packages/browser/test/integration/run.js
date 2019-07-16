@@ -132,7 +132,7 @@ new karma.Server(
     karmaConfigOverrides
   ),
   exitCode => {
-    // rmdir("artifacts");
+    rmdir("artifacts");
     process.exit(exitCode);
   }
 ).start();

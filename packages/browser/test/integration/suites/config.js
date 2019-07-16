@@ -1,14 +1,14 @@
-describe.only("config", function() {
+describe("config", function() {
   it("should allow to ignore specific errors", function() {
     return runInSandbox(sandbox, function() {
       Sentry.captureException(new Error("foo"));
       Sentry.captureException(new Error("ignoreErrorTest"));
       Sentry.captureException(new Error("bar"));
-    }).then(function(events, breadcrumbs) {
-      assert.equal(events[0].exception.values[0].type, "Error");
-      assert.equal(events[0].exception.values[0].value, "foo");
-      assert.equal(events[1].exception.values[0].type, "Error");
-      assert.equal(events[1].exception.values[0].value, "bar");
+    }).then(function(summary) {
+      assert.equal(summary.events[0].exception.values[0].type, "Error");
+      assert.equal(summary.events[0].exception.values[0].value, "foo");
+      assert.equal(summary.events[1].exception.values[0].type, "Error");
+      assert.equal(summary.events[1].exception.values[0].value, "bar");
     });
   });
 
@@ -46,10 +46,10 @@ describe.only("config", function() {
 
       Sentry.captureException(urlWithBlacklistedUrl);
       Sentry.captureException(urlWithoutBlacklistedUrl);
-    }).then(function(events, breadcrumbs) {
-      assert.lengthOf(events, 1);
-      assert.equal(events[0].exception.values[0].type, "Error");
-      assert.equal(events[0].exception.values[0].value, "pass");
+    }).then(function(summary) {
+      assert.lengthOf(summary.events, 1);
+      assert.equal(summary.events[0].exception.values[0].type, "Error");
+      assert.equal(summary.events[0].exception.values[0].value, "pass");
     });
   });
 });

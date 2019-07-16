@@ -1,360 +1,228 @@
 describe("wrapped built-ins", function() {
-  it("should capture exceptions from event listeners", function(done) {
-    var iframe = this.iframe;
+  it("should capture exceptions from event listeners", function() {
+    return runInSandbox(sandbox, function() {
+      var div = document.createElement("div");
+      document.body.appendChild(div);
+      div.addEventListener(
+        "click",
+        function() {
+          window.element = div;
+          window.context = this;
+          foo();
+        },
+        false
+      );
+      var click = new MouseEvent("click");
+      div.dispatchEvent(click);
+    }).then(function(summary) {
+      // Make sure we preserve the correct context
+      assert.equal(summary.window.element, summary.window.context);
+      delete summary.window.element;
+      delete summary.window.context;
+      assert.match(summary.events[0].exception.values[0].value, /baz/);
+    });
+  });
 
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        var div = document.createElement("div");
-        document.body.appendChild(div);
-        div.addEventListener(
-          "click",
-          function() {
-            window.element = div;
-            window.context = this;
-            foo();
-          },
+  it("should transparently remove event listeners from wrapped functions", function() {
+    return runInSandbox(sandbox, function() {
+      var div = document.createElement("div");
+      document.body.appendChild(div);
+      var click = new MouseEvent("click");
+      var fooFn = function() {
+        foo();
+      };
+      var barFn = function() {
+        bar();
+      };
+      div.addEventListener("click", fooFn, false);
+      div.addEventListener("click", barFn);
+      div.removeEventListener("click", barFn);
+      div.dispatchEvent(new MouseEvent("click"));
+    }).then(function(summary) {
+      assert.lengthOf(summary.events, 1);
+    });
+  });
+
+  it("should capture unhandledrejection with error", function() {
+    return runInSandbox(sandbox, function() {
+      if (isChrome()) {
+        Promise.reject(new Error("test2"));
+      }
+    }).then(function(summary) {
+      if (summary.window.isChrome()) {
+        assert.equal(summary.events[0].exception.values[0].value, "test2");
+        assert.equal(summary.events[0].exception.values[0].type, "Error");
+        assert.isAtLeast(
+          summary.events[0].exception.values[0].stacktrace.frames.length,
+          1
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.handled,
           false
         );
-
-        var click = new MouseEvent("click");
-        div.dispatchEvent(click);
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          // Make sure we preserve the correct context
-          assert.equal(
-            iframe.contentWindow.element,
-            iframe.contentWindow.context
-          );
-          delete iframe.contentWindow.element;
-          delete iframe.contentWindow.context;
-          assert.match(sentryData[0].exception.values[0].value, /baz/);
-          done();
-        }
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.type,
+          "onunhandledrejection"
+        );
       }
-    );
+    });
   });
 
-  it("should transparently remove event listeners from wrapped functions", function(done) {
-    var iframe = this.iframe;
+  it("should capture unhandledrejection with a string", function() {
+    return runInSandbox(sandbox, function() {
+      if (isChrome()) {
+        Promise.reject("test");
+      }
+    }).then(function(summary) {
+      if (summary.window.isChrome()) {
+        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        assert.equal(summary.events[0].exception.values[0].value, '"test"');
+        assert.equal(
+          summary.events[0].exception.values[0].type,
+          "UnhandledRejection"
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.handled,
+          false
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.type,
+          "onunhandledrejection"
+        );
+      }
+    });
+  });
 
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        setTimeout(done, 137);
+  it("should capture unhandledrejection with a monster string", function() {
+    return runInSandbox(sandbox, function() {
+      if (isChrome()) {
+        Promise.reject("test".repeat(100));
+      }
+    }).then(function(summary) {
+      if (summary.window.isChrome()) {
+        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        assert.equal(summary.events[0].exception.values[0].value.length, 253);
+        assert.equal(
+          summary.events[0].exception.values[0].type,
+          "UnhandledRejection"
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.handled,
+          false
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.type,
+          "onunhandledrejection"
+        );
+      }
+    });
+  });
 
-        var div = document.createElement("div");
-        document.body.appendChild(div);
-        var fooFn = function() {
-          foo();
+  it("should capture unhandledrejection with an object", function() {
+    return runInSandbox(sandbox, function() {
+      if (isChrome()) {
+        Promise.reject({ a: "b" });
+      }
+    }).then(function(summary) {
+      if (summary.window.isChrome()) {
+        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        assert.equal(summary.events[0].exception.values[0].value, '{"a":"b"}');
+        assert.equal(
+          summary.events[0].exception.values[0].type,
+          "UnhandledRejection"
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.handled,
+          false
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.type,
+          "onunhandledrejection"
+        );
+      }
+    });
+  });
+
+  it("should capture unhandledrejection with an monster object", function() {
+    return runInSandbox(sandbox, function() {
+      if (isChrome()) {
+        var a = {
+          a: "1".repeat("100"),
+          b: "2".repeat("100"),
+          c: "3".repeat("100"),
         };
-        div.addEventListener("click", fooFn, false);
-        div.removeEventListener("click", fooFn);
-
-        var click = new MouseEvent("click");
-        div.dispatchEvent(click);
-      },
-      function() {
-        var sentryData = iframe.contentWindow.sentryData[0];
-        assert.equal(sentryData, null); // should never trigger error
-        done();
+        a.d = a.a;
+        a.e = a;
+        Promise.reject(a);
       }
-    );
+    }).then(function(summary) {
+      if (summary.window.isChrome()) {
+        // non-error rejections doesnt provide stacktraces so we can skip the assertion
+        assert.equal(summary.events[0].exception.values[0].value.length, 253);
+        assert.equal(
+          summary.events[0].exception.values[0].type,
+          "UnhandledRejection"
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.handled,
+          false
+        );
+        assert.equal(
+          summary.events[0].exception.values[0].mechanism.type,
+          "onunhandledrejection"
+        );
+      }
+    });
   });
 
-  it("should capture unhandledrejection with error", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        if (isChrome()) {
-          Promise.reject(new Error("test2"));
-        } else {
-          done();
-        }
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          assert.equal(sentryData[0].exception.values[0].value, "test2");
-          assert.equal(sentryData[0].exception.values[0].type, "Error");
-          assert.isAtLeast(
-            sentryData[0].exception.values[0].stacktrace.frames.length,
-            1
-          );
-          assert.equal(
-            sentryData[0].exception.values[0].mechanism.handled,
-            false
-          );
-          assert.equal(
-            sentryData[0].exception.values[0].mechanism.type,
-            "onunhandledrejection"
-          );
-          done();
-        } else {
-          // This test will be skipped if it's not Chrome Desktop
-          done();
-        }
-      }
-    );
+  it("should capture exceptions inside setTimeout", function() {
+    return runInSandbox(sandbox, function() {
+      setTimeout(function() {
+        foo();
+      });
+    }).then(function(summary) {
+      assert.match(summary.events[0].exception.values[0].value, /baz/);
+    });
   });
 
-  it("should capture unhandledrejection with a string", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        if (isChrome()) {
-          Promise.reject("test");
-        } else {
-          done();
-        }
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          // non-error rejections doesnt provide stacktraces so we can skip the assertion
-          assert.equal(sentryData[0].exception.values[0].value, '"test"');
-          assert.equal(
-            sentryData[0].exception.values[0].type,
-            "UnhandledRejection"
-          );
-          assert.equal(
-            sentryData[0].exception.values[0].mechanism.handled,
-            false
-          );
-          assert.equal(
-            sentryData[0].exception.values[0].mechanism.type,
-            "onunhandledrejection"
-          );
-          done();
-        } else {
-          // This test will be skipped if it's not Chrome Desktop
-          done();
-        }
-      }
-    );
+  it("should capture exceptions inside setInterval", function() {
+    return runInSandbox(sandbox, function() {
+      var exceptionInterval = setInterval(function() {
+        clearInterval(exceptionInterval);
+        foo();
+      }, 0);
+    }).then(function(summary) {
+      assert.match(summary.events[0].exception.values[0].value, /baz/);
+    });
   });
 
-  it("should capture unhandledrejection with a monster string", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        if (isChrome()) {
-          Promise.reject("test".repeat(100));
-        } else {
-          done();
-        }
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          // non-error rejections doesnt provide stacktraces so we can skip the assertion
-          assert.equal(sentryData[0].exception.values[0].value.length, 253);
-          assert.equal(
-            sentryData[0].exception.values[0].type,
-            "UnhandledRejection"
-          );
-          assert.equal(
-            sentryData[0].exception.values[0].mechanism.handled,
-            false
-          );
-          assert.equal(
-            sentryData[0].exception.values[0].mechanism.type,
-            "onunhandledrejection"
-          );
-          done();
-        } else {
-          // This test will be skipped if it's not Chrome Desktop
-          done();
-        }
-      }
-    );
+  it("should capture exceptions inside requestAnimationFrame", function() {
+    return runInSandbox(sandbox, { manual: true }, function() {
+      requestAnimationFrame(function() {
+        window.finalizeManualTest();
+        foo();
+      });
+    }).then(function(summary) {
+      assert.match(summary.events[0].exception.values[0].value, /baz/);
+    });
   });
 
-  it("should capture unhandledrejection with an object", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        if (isChrome()) {
-          Promise.reject({ a: "b" });
-        } else {
-          done();
-        }
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          // non-error rejections doesnt provide stacktraces so we can skip the assertion
-          assert.equal(sentryData[0].exception.values[0].value, '{"a":"b"}');
-          assert.equal(
-            sentryData[0].exception.values[0].type,
-            "UnhandledRejection"
-          );
-          assert.equal(
-            sentryData[0].exception.values[0].mechanism.handled,
-            false
-          );
-          assert.equal(
-            sentryData[0].exception.values[0].mechanism.type,
-            "onunhandledrejection"
-          );
-          done();
-        } else {
-          // This test will be skipped if it's not Chrome Desktop
-          done();
-        }
-      }
-    );
-  });
-
-  it("should capture unhandledrejection with an monster object", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        if (isChrome()) {
-          var a = {
-            a: "1".repeat("100"),
-            b: "2".repeat("100"),
-            c: "3".repeat("100"),
-          };
-          a.d = a.a;
-          a.e = a;
-          Promise.reject(a);
-        } else {
-          done();
-        }
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          // non-error rejections doesnt provide stacktraces so we can skip the assertion
-          assert.equal(sentryData[0].exception.values[0].value.length, 253);
-          assert.equal(
-            sentryData[0].exception.values[0].type,
-            "UnhandledRejection"
-          );
-          assert.equal(
-            sentryData[0].exception.values[0].mechanism.handled,
-            false
-          );
-          assert.equal(
-            sentryData[0].exception.values[0].mechanism.type,
-            "onunhandledrejection"
-          );
-          done();
-        } else {
-          // This test will be skipped if it's not Chrome Desktop
-          done();
-        }
-      }
-    );
-  });
-
-  it("should capture exceptions inside setTimeout", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        setTimeout(function() {
-          foo();
-        });
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          assert.match(sentryData[0].exception.values[0].value, /baz/);
-          done();
-        }
-      }
-    );
-  });
-
-  it("should capture exceptions inside setInterval", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        var exceptionInterval = setInterval(function() {
-          clearInterval(exceptionInterval);
-          foo();
-        }, 137);
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          assert.match(sentryData[0].exception.values[0].value, /baz/);
-          done();
-        }
-      }
-    );
-  });
-
-  it("should capture exceptions inside requestAnimationFrame", function(done) {
-    var iframe = this.iframe;
-    // needs to be visible or requestAnimationFrame won't ever fire
-    iframe.style.display = "block";
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        requestAnimationFrame(function() {
-          foo();
-        });
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          assert.match(sentryData[0].exception.values[0].value, /baz/);
-          done();
-        }
-      }
-    );
-  });
-
-  it("should capture exceptions from XMLHttpRequest event handlers (e.g. onreadystatechange)", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        var xhr = new XMLHttpRequest();
-
-        // intentionally assign event handlers *after* XMLHttpRequest.prototype.open,
-        // since this is what jQuery does
-        // https://github.com/jquery/jquery/blob/master/src/ajax/xhr.js#L37
-
-        xhr.open("GET", "/base/subjects/example.json");
-        xhr.onreadystatechange = function() {
-          setTimeout(done, 137);
-          // replace onreadystatechange with no-op so exception doesn't
-          // fire more than once as XHR changes loading state
-          xhr.onreadystatechange = function() {};
-          foo();
-        };
-        xhr.send();
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          assert.match(sentryData[0].exception.values[0].value, /baz/);
-          done();
-        }
-      }
-    );
+  it("should capture exceptions from XMLHttpRequest event handlers (e.g. onreadystatechange)", function() {
+    return runInSandbox(sandbox, { manual: true }, function() {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "/base/subjects/example.json");
+      // intentionally assign event handlers *after* open, since this is what jQuery does
+      xhr.onreadystatechange = function() {
+        window.finalizeManualTest();
+        // replace onreadystatechange with no-op so exception doesn't
+        // fire more than once as XHR changes loading state
+        xhr.onreadystatechange = function() {};
+        foo();
+      };
+      xhr.send();
+    }).then(function(summary) {
+      assert.match(summary.events[0].exception.values[0].value, /baz/);
+    });
   });
 
   it(
@@ -362,55 +230,43 @@ describe("wrapped built-ins", function() {
       "should capture built-in's mechanism type as instrument",
       IS_LOADER
     ),
-    function(done) {
-      var iframe = this.iframe;
+    function() {
+      return runInSandbox(sandbox, function() {
+        setTimeout(function() {
+          foo();
+        });
+      }).then(function(summary) {
+        if (IS_LOADER) {
+          // The async loader doesn't wrap setTimeout
+          // so we don't receive the full mechanism
+          assert.ok(summary.events[0].exception.values[0].mechanism);
+        } else {
+          var fn =
+            summary.events[0].exception.values[0].mechanism.data.function;
+          delete summary.events[0].exception.values[0].mechanism.data;
 
-      iframeExecute(
-        iframe,
-        done,
-        function() {
-          setTimeout(function() {
-            foo();
-          });
-        },
-        function(sentryData) {
-          if (debounceAssertEventCount(sentryData, 1, done)) {
-            var sentryData = sentryData[0];
-
-            if (IS_LOADER) {
-              // The async loader doesn't wrap setTimeout
-              // so we don't receive the full mechanism
-              assert.ok(sentryData.exception.values[0].mechanism);
-              return done();
-            }
-
-            var fn = sentryData.exception.values[0].mechanism.data.function;
-            delete sentryData.exception.values[0].mechanism.data;
-
-            if (canReadFunctionName()) {
-              assert.equal(fn, "setTimeout");
-            } else {
-              assert.equal(fn, "<anonymous>");
-            }
-
-            assert.deepEqual(sentryData.exception.values[0].mechanism, {
-              type: "instrument",
-              handled: true,
-            });
-            done();
+          if (canReadFunctionName()) {
+            assert.equal(fn, "setTimeout");
+          } else {
+            assert.equal(fn, "<anonymous>");
           }
+
+          assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
+            type: "instrument",
+            handled: true,
+          });
         }
-      );
+      });
     }
   );
 
-  it("should capture built-in's handlers fn name in mechanism data", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
+  it(
+    optional(
+      "should capture built-in's handlers fn name in mechanism data",
+      IS_LOADER
+    ),
+    function() {
+      return runInSandbox(sandbox, function() {
         var div = document.createElement("div");
         document.body.appendChild(div);
         div.addEventListener(
@@ -420,25 +276,20 @@ describe("wrapped built-ins", function() {
           },
           false
         );
-
         var click = new MouseEvent("click");
         div.dispatchEvent(click);
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = sentryData[0];
-
-          if (IS_LOADER) {
-            // The async loader doesn't wrap addEventListener
-            // so we don't receive the full mechanism
-            assert.ok(sentryData.exception.values[0].mechanism);
-            return done();
-          }
-
-          var handler = sentryData.exception.values[0].mechanism.data.handler;
-          delete sentryData.exception.values[0].mechanism.data.handler;
-          var target = sentryData.exception.values[0].mechanism.data.target;
-          delete sentryData.exception.values[0].mechanism.data.target;
+      }).then(function(summary) {
+        if (IS_LOADER) {
+          // The async loader doesn't wrap addEventListener
+          // so we don't receive the full mechanism
+          assert.ok(summary.events[0].exception.values[0].mechanism);
+        } else {
+          var handler =
+            summary.events[0].exception.values[0].mechanism.data.handler;
+          delete summary.events[0].exception.values[0].mechanism.data.handler;
+          var target =
+            summary.events[0].exception.values[0].mechanism.data.target;
+          delete summary.events[0].exception.values[0].mechanism.data.target;
 
           if (canReadFunctionName()) {
             assert.equal(handler, "namedFunction");
@@ -448,26 +299,25 @@ describe("wrapped built-ins", function() {
 
           // IE vs. Rest of the world
           assert.oneOf(target, ["Node", "EventTarget"]);
-          assert.deepEqual(sentryData.exception.values[0].mechanism, {
+          assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
             type: "instrument",
             handled: true,
             data: {
               function: "addEventListener",
             },
           });
-          done();
         }
-      }
-    );
-  });
+      });
+    }
+  );
 
-  it("should fallback to <anonymous> fn name in mechanism data if one is unavailable", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
+  it(
+    optional(
+      "should fallback to <anonymous> fn name in mechanism data if one is unavailable",
+      IS_LOADER
+    ),
+    function() {
+      return runInSandbox(sandbox, function() {
         var div = document.createElement("div");
         document.body.appendChild(div);
         div.addEventListener(
@@ -477,26 +327,20 @@ describe("wrapped built-ins", function() {
           },
           false
         );
-
         var click = new MouseEvent("click");
         div.dispatchEvent(click);
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = sentryData[0];
-
-          if (IS_LOADER) {
-            // The async loader doesn't wrap
-            assert.ok(sentryData.exception.values[0].mechanism);
-            return done();
-          }
-
-          var target = sentryData.exception.values[0].mechanism.data.target;
-          delete sentryData.exception.values[0].mechanism.data.target;
+      }).then(function(summary) {
+        if (IS_LOADER) {
+          // The async loader doesn't wrap
+          assert.ok(summary.events[0].exception.values[0].mechanism);
+        } else {
+          var target =
+            summary.events[0].exception.values[0].mechanism.data.target;
+          delete summary.events[0].exception.values[0].mechanism.data.target;
 
           // IE vs. Rest of the world
           assert.oneOf(target, ["Node", "EventTarget"]);
-          assert.deepEqual(sentryData.exception.values[0].mechanism, {
+          assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
             type: "instrument",
             handled: true,
             data: {
@@ -504,9 +348,8 @@ describe("wrapped built-ins", function() {
               handler: "<anonymous>",
             },
           });
-          done();
         }
-      }
-    );
-  });
+      });
+    }
+  );
 });
