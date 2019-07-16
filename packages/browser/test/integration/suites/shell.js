@@ -1,5 +1,5 @@
-var variants = ["frame"];
-// var variants = ["frame", "loader", "loader-lazy-no"];
+// var variants = ["loader"];
+var variants = ["frame", "loader", "loader-lazy-no"];
 
 function runVariant(variant) {
   var IS_LOADER = !!variant.match(/^loader/);

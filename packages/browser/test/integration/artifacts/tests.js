@@ -1,26 +1,42 @@
-function runInSandbox(sandbox, code) {
-  var finalizeTest;
-  var donePromise = new Promise(function(resolve) {
-    finalizeTest = resolve;
-  });
-
-  sandbox.contentWindow.finalizeTest = finalizeTest;
-
-  var collect = function() {
-    Sentry.flush(2000).then(function() {
-      window.finalizeTest(events, breadcrumbs);
-    });
-  };
-
+function evaluateInSandbox(sandbox, code) {
   // use setTimeout so stack trace doesn't go all the way back to mocha test runner
-  sandbox.contentWindow.eval(
-    "window.originalBuiltIns.setTimeout.call(window, " +
-      collect.toString() +
-      ");"
-  );
   sandbox.contentWindow.eval(
     "window.originalBuiltIns.setTimeout.call(window, " + code.toString() + ");"
   );
+}
+
+function runInSandbox(sandbox, options, code) {
+  if (typeof options === "function") {
+    code = options;
+    options = {};
+  }
+
+  var resolveTest;
+  var donePromise = new Promise(function(resolve) {
+    resolveTest = resolve;
+  });
+  sandbox.contentWindow.resolveTest = resolveTest;
+
+  var finalize = function() {
+    Sentry.onLoad(function() {
+      Sentry.flush()
+        .then(function() {
+          window.resolveTest(events, breadcrumbs);
+        })
+        .catch(function() {
+          window.resolveTest(events, breadcrumbs);
+        });
+    });
+  };
+  sandbox.contentWindow.finalizeManualTest = function() {
+    evaluateInSandbox(sandbox, finalize.toString());
+  };
+
+  evaluateInSandbox(sandbox, code.toString());
+
+  if (!options.manual) {
+    evaluateInSandbox(sandbox, finalize.toString());
+  }
 
   return donePromise;
 }
@@ -78,8 +94,8 @@ function canReadFunctionName() {
   return false;
 }
 
-var variants = ["frame"];
-// var variants = ["frame", "loader", "loader-lazy-no"];
+// var variants = ["loader"];
+var variants = ["frame", "loader", "loader-lazy-no"];
 
 function runVariant(variant) {
   var IS_LOADER = !!variant.match(/^loader/);
@@ -158,461 +174,295 @@ function runVariant(variant) {
   });
 });
  // prettier-ignore
-    describe("API", function() {
-  it("should capture Sentry.captureMessage", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        Sentry.captureMessage("Hello");
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = sentryData[0];
-          assert.equal(sentryData.message, "Hello");
-          done();
-        }
-      }
-    );
+    describe.only("API", function() {
+  it("should capture Sentry.captureMessage", function() {
+    return runInSandbox(sandbox, function() {
+      Sentry.captureMessage("Hello");
+    }).then(function(events, breadcrumbs) {
+      assert.equal(events[0].message, "Hello");
+    });
   });
 
-  it("should capture Sentry.captureException", function(done) {
-    var iframe = this.iframe;
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        try {
-          foo();
-        } catch (e) {
-          Sentry.captureException(e);
-        }
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = sentryData[0];
-          assert.isAtLeast(
-            sentryData.exception.values[0].stacktrace.frames.length,
-            2
-          );
-          assert.isAtMost(
-            sentryData.exception.values[0].stacktrace.frames.length,
-            4
-          );
-          done();
-        }
+  it("should capture Sentry.captureException", function() {
+    return runInSandbox(sandbox, function() {
+      try {
+        foo();
+      } catch (e) {
+        Sentry.captureException(e);
       }
-    );
+    }).then(function(events, breadcrumbs) {
+      assert.isAtLeast(
+        events[0].exception.values[0].stacktrace.frames.length,
+        2
+      );
+      assert.isAtMost(
+        events[0].exception.values[0].stacktrace.frames.length,
+        4
+      );
+    });
   });
 
-  it("should generate a synthetic trace for captureException w/ non-errors", function(done) {
-    var iframe = this.iframe;
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        throwNonError();
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = sentryData[0];
-          assert.isAtLeast(sentryData.stacktrace.frames.length, 1);
-          assert.isAtMost(sentryData.stacktrace.frames.length, 3);
-          done();
-        }
-      }
-    );
+  it("should generate a synthetic trace for captureException w/ non-errors", function() {
+    return runInSandbox(sandbox, function() {
+      throwNonError();
+    }).then(function(events, breadcrumbs) {
+      assert.isAtLeast(events[0].stacktrace.frames.length, 1);
+      assert.isAtMost(events[0].stacktrace.frames.length, 3);
+    });
   });
 
-  it("should have correct stacktrace order", function(done) {
-    var iframe = this.iframe;
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        try {
-          foo();
-        } catch (e) {
-          Sentry.captureException(e);
-        }
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = sentryData[0];
-          assert.equal(
-            sentryData.exception.values[0].stacktrace.frames[
-              sentryData.exception.values[0].stacktrace.frames.length - 1
-            ].function,
-            "bar"
-          );
-          assert.isAtLeast(
-            sentryData.exception.values[0].stacktrace.frames.length,
-            2
-          );
-          assert.isAtMost(
-            sentryData.exception.values[0].stacktrace.frames.length,
-            4
-          );
-          done();
-        }
+  it("should have correct stacktrace order", function() {
+    return runInSandbox(sandbox, function() {
+      try {
+        foo();
+      } catch (e) {
+        Sentry.captureException(e);
       }
-    );
+    }).then(function(events, breadcrumbs) {
+      assert.equal(
+        events[0].exception.values[0].stacktrace.frames[
+          events[0].exception.values[0].stacktrace.frames.length - 1
+        ].function,
+        "bar"
+      );
+      assert.isAtLeast(
+        events[0].exception.values[0].stacktrace.frames.length,
+        2
+      );
+      assert.isAtMost(
+        events[0].exception.values[0].stacktrace.frames.length,
+        4
+      );
+    });
   });
 
-  it("should have exception with type and value", function(done) {
-    var iframe = this.iframe;
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        Sentry.captureException("this is my test exception");
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = sentryData[0];
-          assert.isNotEmpty(sentryData.exception.values[0].value);
-          assert.isNotEmpty(sentryData.exception.values[0].type);
-          done();
-        }
-      }
-    );
+  it("should have exception with type and value", function() {
+    return runInSandbox(sandbox, function() {
+      Sentry.captureException("this is my test exception");
+    }).then(function(events, breadcrumbs) {
+      assert.isNotEmpty(events[0].exception.values[0].value);
+      assert.isNotEmpty(events[0].exception.values[0].type);
+    });
   });
 
-  it("should reject duplicate, back-to-back errors from captureException", function(done) {
-    var iframe = this.iframe;
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        // Different exceptions, don't dedupe
-        for (var i = 0; i < 2; i++) {
-          throwRandomError();
-        }
-
-        // Same exceptions and same stacktrace, dedupe
-        for (var i = 0; i < 2; i++) {
-          throwError();
-        }
-
-        // Same exceptions, different stacktrace (different line number), don't dedupe
-        throwSameConsecutiveErrors("bar");
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 5, done)) {
-          assert.match(
-            sentryData[0].exception.values[0].value,
-            /Exception no \d+/
-          );
-          assert.match(
-            sentryData[1].exception.values[0].value,
-            /Exception no \d+/
-          );
-          assert.equal(sentryData[2].exception.values[0].value, "foo");
-          assert.equal(sentryData[3].exception.values[0].value, "bar");
-          assert.equal(sentryData[4].exception.values[0].value, "bar");
-          done();
-        }
+  it("should reject duplicate, back-to-back errors from captureException", function() {
+    return runInSandbox(sandbox, function() {
+      // Different exceptions, don't dedupe
+      for (var i = 0; i < 2; i++) {
+        throwRandomError();
       }
-    );
+
+      // Same exceptions and same stacktrace, dedupe
+      for (var i = 0; i < 2; i++) {
+        throwError();
+      }
+
+      // Same exceptions, different stacktrace (different line number), don't dedupe
+      throwSameConsecutiveErrors("bar");
+    }).then(function(events, breadcrumbs) {
+      assert.match(events[0].exception.values[0].value, /Exception no \d+/);
+      assert.match(events[1].exception.values[0].value, /Exception no \d+/);
+      assert.equal(events[2].exception.values[0].value, "foo");
+      assert.equal(events[3].exception.values[0].value, "bar");
+      assert.equal(events[4].exception.values[0].value, "bar");
+    });
   });
 
-  it("should not reject back-to-back errors with different stack traces", function(done) {
-    var iframe = this.iframe;
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        // same error message, but different stacks means that these are considered
-        // different errors
+  it("should not reject back-to-back errors with different stack traces", function() {
+    return runInSandbox(sandbox, function() {
+      // same error message, but different stacks means that these are considered
+      // different errors
 
-        // stack:
-        //   bar
-        try {
-          bar(); // declared in frame.html
-        } catch (e) {
-          Sentry.captureException(e);
-        }
-
-        // stack (different # frames):
-        //   bar
-        //   foo
-        try {
-          foo(); // declared in frame.html
-        } catch (e) {
-          Sentry.captureException(e);
-        }
-
-        // stack (same # frames, different frames):
-        //   bar
-        //   foo2
-        try {
-          foo2(); // declared in frame.html
-        } catch (e) {
-          Sentry.captureException(e);
-        }
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 3, done)) {
-          // NOTE: regex because exact error message differs per-browser
-          assert.match(sentryData[0].exception.values[0].value, /baz/);
-          assert.equal(
-            sentryData[0].exception.values[0].type,
-            "ReferenceError"
-          );
-          assert.match(sentryData[1].exception.values[0].value, /baz/);
-          assert.equal(
-            sentryData[1].exception.values[0].type,
-            "ReferenceError"
-          );
-          assert.match(sentryData[2].exception.values[0].value, /baz/);
-          assert.equal(
-            sentryData[2].exception.values[0].type,
-            "ReferenceError"
-          );
-          done();
-        }
+      // stack:
+      //   bar
+      try {
+        bar(); // declared in frame.html
+      } catch (e) {
+        Sentry.captureException(e);
       }
-    );
+
+      // stack (different # frames):
+      //   bar
+      //   foo
+      try {
+        foo(); // declared in frame.html
+      } catch (e) {
+        Sentry.captureException(e);
+      }
+
+      // stack (same # frames, different frames):
+      //   bar
+      //   foo2
+      try {
+        foo2(); // declared in frame.html
+      } catch (e) {
+        Sentry.captureException(e);
+      }
+    }).then(function(events, breadcrumbs) {
+      // NOTE: regex because exact error message differs per-browser
+      assert.match(events[0].exception.values[0].value, /baz/);
+      assert.equal(events[0].exception.values[0].type, "ReferenceError");
+      assert.match(events[1].exception.values[0].value, /baz/);
+      assert.equal(events[1].exception.values[0].type, "ReferenceError");
+      assert.match(events[2].exception.values[0].value, /baz/);
+      assert.equal(events[2].exception.values[0].type, "ReferenceError");
+    });
   });
 
-  it("should reject duplicate, back-to-back messages from captureMessage", function(done) {
-    var iframe = this.iframe;
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        // Different messages, don't dedupe
-        for (var i = 0; i < 2; i++) {
-          captureRandomMessage();
-        }
-
-        // Same messages and same stacktrace, dedupe
-        for (var i = 0; i < 2; i++) {
-          captureMessage("same message, same stacktrace");
-        }
-
-        // Same messages, different stacktrace (different line number), don't dedupe
-        captureSameConsecutiveMessages("same message, different stacktrace");
-      },
-      function(sentryData) {
-        var eventCount = 5;
-        if (IS_LOADER) {
-          // On the async loader since we replay all messages from the same location
-          // we actually only receive 4 events
-          eventCount = 4;
-        }
-        if (debounceAssertEventCount(sentryData, eventCount, done)) {
-          assert.match(sentryData[0].message, /Message no \d+/);
-          assert.match(sentryData[1].message, /Message no \d+/);
-          assert.equal(sentryData[2].message, "same message, same stacktrace");
-          assert.equal(
-            sentryData[3].message,
-            "same message, different stacktrace"
-          );
-          !IS_LOADER &&
-            assert.equal(
-              sentryData[4].message,
-              "same message, different stacktrace"
-            );
-          done();
-        }
+  it("should reject duplicate, back-to-back messages from captureMessage", function() {
+    return runInSandbox(sandbox, function() {
+      // Different messages, don't dedupe
+      for (var i = 0; i < 2; i++) {
+        captureRandomMessage();
       }
-    );
+
+      // Same messages and same stacktrace, dedupe
+      for (var i = 0; i < 2; i++) {
+        captureMessage("same message, same stacktrace");
+      }
+
+      // Same messages, different stacktrace (different line number), don't dedupe
+      captureSameConsecutiveMessages("same message, different stacktrace");
+    }).then(function(events, breadcrumbs) {
+      // On the async loader since we replay all messages from the same location,
+      // so we actually only receive 4 events
+      assert.match(events[0].message, /Message no \d+/);
+      assert.match(events[1].message, /Message no \d+/);
+      assert.equal(events[2].message, "same message, same stacktrace");
+      assert.equal(events[3].message, "same message, different stacktrace");
+      !IS_LOADER &&
+        assert.equal(events[4].message, "same message, different stacktrace");
+    });
   });
 });
  // prettier-ignore
-    describe("window.onerror", function() {
-  it("should catch syntax errors", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        eval("foo{};");
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = sentryData[0];
-          // ¯\_(ツ)_/¯
-          if (isBelowIE11()) {
-            assert.equal(sentryData.exception.values[0].type, "Error");
-          } else {
-            assert.match(sentryData.exception.values[0].type, /SyntaxError/);
-          }
-          assert.equal(
-            sentryData.exception.values[0].stacktrace.frames.length,
-            1
-          ); // just one frame
-          done();
-        }
+    describe.only("window.onerror", function() {
+  it("should catch syntax errors", function() {
+    return runInSandbox(sandbox, function() {
+      eval("foo{};");
+    }).then(function(events, breadcrumbs) {
+      // ¯\_(ツ)_/¯
+      if (isBelowIE11()) {
+        assert.equal(events[0].exception.values[0].type, "Error");
+      } else {
+        assert.match(events[0].exception.values[0].type, /SyntaxError/);
       }
-    );
+      assert.equal(events[0].exception.values[0].stacktrace.frames.length, 1); // just one frame
+    });
   });
 
-  it("should catch thrown strings", function(done) {
-    var iframe = this.iframe;
+  it("should catch thrown strings", function() {
+    return runInSandbox(sandbox, { manual: true }, function() {
+      // intentionally loading this error via a script file to make
+      // sure it is 1) not caught by instrumentation 2) doesn't trigger
+      // "Script error"
+      var script = document.createElement("script");
+      script.src = "/base/subjects/throw-string.js";
+      script.onload = function() {
+        window.finalizeManualTest();
+      };
+      document.head.appendChild(script);
+    }).then(function(events, breadcrumbs) {
+      assert.match(events[0].exception.values[0].value, /stringError$/);
+      assert.equal(events[0].exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown strings can't provide > 1 frame
 
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        // intentionally loading this error via a script file to make
-        // sure it is 1) not caught by instrumentation 2) doesn't trigger
-        // "Script error"
-        var script = document.createElement("script");
-        script.src = "/base/subjects/throw-string.js";
-        script.onload = function() {
-          done();
-        };
-        document.head.appendChild(script);
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = sentryData[0];
-          assert.match(sentryData.exception.values[0].value, /stringError$/);
-          assert.equal(
-            sentryData.exception.values[0].stacktrace.frames.length,
-            1
-          ); // always 1 because thrown strings can't provide > 1 frame
-
-          // some browsers extract proper url, line, and column for thrown strings
-          // but not all - falls back to frame url
-          assert.match(
-            sentryData.exception.values[0].stacktrace.frames[0].filename,
-            /(\/subjects\/throw-string.js|\/base\/variants\/)/
-          );
-          assert.match(
-            sentryData.exception.values[0].stacktrace.frames[0]["function"],
-            /throwStringError|\?|global code/i
-          );
-          done();
-        }
-      }
-    );
+      // some browsers extract proper url, line, and column for thrown strings
+      // but not all - falls back to frame url
+      assert.match(
+        events[0].exception.values[0].stacktrace.frames[0].filename,
+        /(\/subjects\/throw-string.js|\/base\/variants\/)/
+      );
+      assert.match(
+        events[0].exception.values[0].stacktrace.frames[0]["function"],
+        /throwStringError|\?|global code/i
+      );
+    });
   });
 
-  it("should catch thrown objects", function(done) {
-    var iframe = this.iframe;
+  it("should catch thrown objects", function() {
+    return runInSandbox(sandbox, { manual: true }, function() {
+      // intentionally loading this error via a script file to make
+      // sure it is 1) not caught by instrumentation 2) doesn't trigger
+      // "Script error"
+      var script = document.createElement("script");
+      script.src = "/base/subjects/throw-object.js";
+      script.onload = function() {
+        window.finalizeManualTest();
+      };
+      document.head.appendChild(script);
+    }).then(function(events, breadcrumbs) {
+      assert.equal(events[0].exception.values[0].type, "Error");
 
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        // intentionally loading this error via a script file to make
-        // sure it is 1) not caught by instrumentation 2) doesn't trigger
-        // "Script error"
-        var script = document.createElement("script");
-        script.src = "/base/subjects/throw-object.js";
-        script.onload = function() {
-          done();
-        };
-        document.head.appendChild(script);
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = sentryData[0];
-          assert.equal(sentryData.exception.values[0].type, "Error");
+      // #<Object> is covering default Android 4.4 and 5.1 browser
+      assert.match(
+        events[0].exception.values[0].value,
+        /^(\[object Object\]|#<Object>)$/
+      );
+      assert.equal(events[0].exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown objects can't provide > 1 frame
 
-          // #<Object> is covering default Android 4.4 and 5.1 browser
-          assert.match(
-            sentryData.exception.values[0].value,
-            /^(\[object Object\]|#<Object>)$/
-          );
-          assert.equal(
-            sentryData.exception.values[0].stacktrace.frames.length,
-            1
-          ); // always 1 because thrown objects can't provide > 1 frame
-
-          // some browsers extract proper url, line, and column for thrown objects
-          // but not all - falls back to frame url
-          assert.match(
-            sentryData.exception.values[0].stacktrace.frames[0].filename,
-            /(\/subjects\/throw-object.js|\/base\/variants\/)/
-          );
-          assert.match(
-            sentryData.exception.values[0].stacktrace.frames[0]["function"],
-            /throwStringError|\?|global code/i
-          );
-          done();
-        }
-      }
-    );
+      // some browsers extract proper url, line, and column for thrown objects
+      // but not all - falls back to frame url
+      assert.match(
+        events[0].exception.values[0].stacktrace.frames[0].filename,
+        /(\/subjects\/throw-object.js|\/base\/variants\/)/
+      );
+      assert.match(
+        events[0].exception.values[0].stacktrace.frames[0]["function"],
+        /throwStringError|\?|global code/i
+      );
+    });
   });
 
-  it("should catch thrown errors", function(done) {
-    var iframe = this.iframe;
-
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        // intentionally loading this error via a script file to make
-        // sure it is 1) not caught by instrumentation 2) doesn't trigger
-        // "Script error"
-        var script = document.createElement("script");
-        script.src = "/base/subjects/throw-error.js";
-        script.onload = function() {
-          done();
-        };
-        document.head.appendChild(script);
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          var sentryData = iframe.contentWindow.sentryData[0];
-          // ¯\_(ツ)_/¯
-          if (isBelowIE11()) {
-            assert.equal(sentryData.exception.values[0].type, "Error");
-          } else {
-            assert.match(sentryData.exception.values[0].type, /^Error/);
-          }
-          assert.match(sentryData.exception.values[0].value, /realError$/);
-          // 1 or 2 depending on platform
-          assert.isAtLeast(
-            sentryData.exception.values[0].stacktrace.frames.length,
-            1
-          );
-          assert.isAtMost(
-            sentryData.exception.values[0].stacktrace.frames.length,
-            2
-          );
-          assert.match(
-            sentryData.exception.values[0].stacktrace.frames[0].filename,
-            /\/subjects\/throw-error\.js/
-          );
-          assert.match(
-            sentryData.exception.values[0].stacktrace.frames[0]["function"],
-            /\?|global code|throwRealError/i
-          );
-          done();
-        }
+  it("should catch thrown errors", function() {
+    return runInSandbox(sandbox, { manual: true }, function() {
+      // intentionally loading this error via a script file to make
+      // sure it is 1) not caught by instrumentation 2) doesn't trigger
+      // "Script error"
+      var script = document.createElement("script");
+      script.src = "/base/subjects/throw-error.js";
+      script.onload = function() {
+        window.finalizeManualTest();
+      };
+      document.head.appendChild(script);
+    }).then(function(events, breadcrumbs) {
+      // ¯\_(ツ)_/¯
+      if (isBelowIE11()) {
+        assert.equal(events[0].exception.values[0].type, "Error");
+      } else {
+        assert.match(events[0].exception.values[0].type, /^Error/);
       }
-    );
+      assert.match(events[0].exception.values[0].value, /realError$/);
+      // 1 or 2 depending on platform
+      assert.isAtLeast(
+        events[0].exception.values[0].stacktrace.frames.length,
+        1
+      );
+      assert.isAtMost(
+        events[0].exception.values[0].stacktrace.frames.length,
+        2
+      );
+      assert.match(
+        events[0].exception.values[0].stacktrace.frames[0].filename,
+        /\/subjects\/throw-error\.js/
+      );
+      assert.match(
+        events[0].exception.values[0].stacktrace.frames[0]["function"],
+        /\?|global code|throwRealError/i
+      );
+    });
   });
 
-  it("should NOT catch an exception already caught [but rethrown] via Sentry.captureException", function(done) {
-    var iframe = this.iframe;
-    iframeExecute(
-      iframe,
-      done,
-      function() {
-        setTimeout(done, 137);
-        try {
-          foo();
-        } catch (e) {
-          Sentry.captureException(e);
-          throw e; // intentionally re-throw
-        }
-      },
-      function(sentryData) {
-        if (debounceAssertEventCount(sentryData, 1, done)) {
-          assert.equal(sentryData.length, 1);
-          done();
-        }
+  it("should NOT catch an exception already caught [but rethrown] via Sentry.captureException", function() {
+    return runInSandbox(sandbox, function() {
+      try {
+        foo();
+      } catch (e) {
+        Sentry.captureException(e);
+        throw e; // intentionally re-throw
       }
-    );
+    }).then(function(events, breadcrumbs) {
+      assert.equal(events.length, 1);
+    });
   });
 });
  // prettier-ignore

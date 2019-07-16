@@ -1,4 +1,4 @@
-describe("config", function() {
+describe.only("config", function() {
   it("should allow to ignore specific errors", function() {
     return runInSandbox(sandbox, function() {
       Sentry.captureException(new Error("foo"));

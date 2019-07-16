@@ -1,26 +1,42 @@
-function runInSandbox(sandbox, code) {
-  var finalizeTest;
-  var donePromise = new Promise(function(resolve) {
-    finalizeTest = resolve;
-  });
-
-  sandbox.contentWindow.finalizeTest = finalizeTest;
-
-  var collect = function() {
-    Sentry.flush(2000).then(function() {
-      window.finalizeTest(events, breadcrumbs);
-    });
-  };
-
+function evaluateInSandbox(sandbox, code) {
   // use setTimeout so stack trace doesn't go all the way back to mocha test runner
-  sandbox.contentWindow.eval(
-    "window.originalBuiltIns.setTimeout.call(window, " +
-      collect.toString() +
-      ");"
-  );
   sandbox.contentWindow.eval(
     "window.originalBuiltIns.setTimeout.call(window, " + code.toString() + ");"
   );
+}
+
+function runInSandbox(sandbox, options, code) {
+  if (typeof options === "function") {
+    code = options;
+    options = {};
+  }
+
+  var resolveTest;
+  var donePromise = new Promise(function(resolve) {
+    resolveTest = resolve;
+  });
+  sandbox.contentWindow.resolveTest = resolveTest;
+
+  var finalize = function() {
+    Sentry.onLoad(function() {
+      Sentry.flush()
+        .then(function() {
+          window.resolveTest(events, breadcrumbs);
+        })
+        .catch(function() {
+          window.resolveTest(events, breadcrumbs);
+        });
+    });
+  };
+  sandbox.contentWindow.finalizeManualTest = function() {
+    evaluateInSandbox(sandbox, finalize.toString());
+  };
+
+  evaluateInSandbox(sandbox, code.toString());
+
+  if (!options.manual) {
+    evaluateInSandbox(sandbox, finalize.toString());
+  }
 
   return donePromise;
 }
