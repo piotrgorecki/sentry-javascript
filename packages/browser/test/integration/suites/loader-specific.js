@@ -1,17 +1,17 @@
-var variants = [
+var loaderVariants = [
   "loader-with-no-global-init",
   "loader-with-no-global-init-lazy-no",
 ];
 
-for (var idx in variants) {
+for (var idx in loaderVariants) {
   (function() {
-    var filename = variants[idx];
+    describe(loaderVariants[idx], function() {
+      // this.timeout(30000);
 
-    describe(filename + ".html", function() {
-      this.timeout(30000);
+      var sandbox;
 
       beforeEach(function(done) {
-        this.iframe = createIframe(done, filename);
+        sandbox = createSandbox(done, loaderVariants[idx]);
       });
 
       afterEach(function() {

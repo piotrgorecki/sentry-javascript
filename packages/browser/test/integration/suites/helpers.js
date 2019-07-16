@@ -1,28 +1,39 @@
-function iframeExecute(iframe, done, execute, assertCallback) {
-  iframe.contentWindow.done = function(sentryData) {
-    try {
-      assertCallback(sentryData);
-    } catch (e) {
-      done(e);
-    }
+function runInSandbox(sandbox, code) {
+  var finalizeTest;
+  var donePromise = new Promise(function(resolve) {
+    finalizeTest = resolve;
+  });
+
+  sandbox.contentWindow.finalizeTest = finalizeTest;
+
+  var collect = function() {
+    Sentry.flush(2000).then(function() {
+      window.finalizeTest(events, breadcrumbs);
+    });
   };
+
   // use setTimeout so stack trace doesn't go all the way back to mocha test runner
-  iframe.contentWindow.eval(
+  sandbox.contentWindow.eval(
     "window.originalBuiltIns.setTimeout.call(window, " +
-      execute.toString() +
+      collect.toString() +
       ");"
   );
+  sandbox.contentWindow.eval(
+    "window.originalBuiltIns.setTimeout.call(window, " + code.toString() + ");"
+  );
+
+  return donePromise;
 }
 
-function createIframe(done, file) {
-  var iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = "/base/variants/" + file + ".html";
-  iframe.onload = function() {
+function createSandbox(done, file) {
+  var sandbox = document.createElement("iframe");
+  sandbox.style.display = "none";
+  sandbox.src = "/base/variants/" + file + ".html";
+  sandbox.onload = function() {
     done();
   };
-  document.body.appendChild(iframe);
-  return iframe;
+  document.body.appendChild(sandbox);
+  return sandbox;
 }
 
 var assertTimeout;

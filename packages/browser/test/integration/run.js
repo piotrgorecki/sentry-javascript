@@ -109,11 +109,9 @@ writeFile(
 
 writeFile(
   "artifacts/tests.js",
-  [
-    readFile("suites/helpers.js"),
-    replacePlaceholders("suites/shell.js"),
-    readFile("suites/loader-specific.js"),
-  ].join("\n")
+  [readFile("suites/helpers.js"), replacePlaceholders("suites/shell.js")].join(
+    "\n"
+  )
 );
 
 const karmaConfigOverrides = {

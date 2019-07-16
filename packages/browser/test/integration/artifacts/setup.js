@@ -180,43 +180,49 @@ exports.Dedupe = Dedupe;
 // store references to original, unwrapped built-ins in order to:
 // - get a clean, unwrapped setTimeout (so stack traces don't include frames from mocha)
 // - make assertions re: wrapped functions
-(function() {
-  window.originalBuiltIns = {
-    setTimeout: setTimeout,
-    setInterval: setInterval,
-    requestAnimationFrame: requestAnimationFrame,
-    xhrProtoOpen: XMLHttpRequest.prototype.open,
-    headAddEventListener: document.head.addEventListener, // use <head> 'cause body isn't closed yet
-    headRemoveEventListener: document.head.removeEventListener,
-    consoleDebug: console.debug,
-    consoleInfo: console.info,
-    consoleWarn: console.warn,
-    consoleError: console.error,
-    consoleLog: console.log,
-  };
-})();
 
-// expose events so we can access them in our tests
-window.sentryData = [];
-window.sentryBreadcrumbs = [];
+// TODO: Remove some as we dont use all of the
+var originalBuiltIns = {
+  setTimeout: setTimeout,
+  setInterval: setInterval,
+  requestAnimationFrame: requestAnimationFrame,
+  xhrProtoOpen: XMLHttpRequest.prototype.open,
+  headAddEventListener: document.head.addEventListener, // use <head> 'cause body isn't closed yet
+  headRemoveEventListener: document.head.removeEventListener,
+  consoleDebug: console.debug,
+  consoleInfo: console.info,
+  consoleWarn: console.warn,
+  consoleError: console.error,
+  consoleLog: console.log,
+};
+
+var events = [];
+var breadcrumbs = [];
 
 function initSDK() {
   Sentry.init({
     dsn: "https://public@example.com/1",
     integrations: [new Sentry.Integrations.Dedupe()],
     attachStacktrace: true,
+    // TODO: use BeforeSend instead?
     transport: function DummyTransport() {
+      this.close = function() {
+        return Promise.resolve(true);
+      };
       this.sendEvent = function(event) {
-        sentryData.push(event);
-        done(sentryData);
-        return Promise.resolve({
-          status: "success",
-        });
+        events.push(event);
+        // done(sentryData);
+        return Promise.resolve(true);
+        // {
+        //   status: "success",
+        // });
       };
     },
     ignoreErrors: ["ignoreErrorTest"],
     blacklistUrls: ["foo.js"],
     beforeBreadcrumb: function(breadcrumb) {
+      // TODO: Reverify what we need here
+
       // Filter console logs as we use them for debugging *a lot* and they are not *that* important
       // But allow then if we explicitly say so (for one of integration tests)
       if (
@@ -242,8 +248,7 @@ function initSDK() {
         return null;
       }
 
-      sentryBreadcrumbs.push(breadcrumb);
-
+      breadcrumbs.push(breadcrumb);
       return breadcrumb;
     },
   });
