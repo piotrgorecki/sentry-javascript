@@ -78,6 +78,8 @@ extend(Raven.prototype, {
     this.stacktrace = options.stacktrace || false;
     this.zlibLimiter = new Limiter({concurrency: 25});
 
+    this.maxNestingLevel = options.maxNestingLevel || 3;
+
     if (!this.dsn) {
       utils.consoleAlert('no DSN provided, error reporting disabled');
     }
@@ -403,7 +405,7 @@ extend(Raven.prototype, {
           fingerprint: [md5(keys)],
           extra: kwargs.extra || {}
         });
-        kwargs.extra.__serialized__ = utils.serializeException(err);
+        kwargs.extra.__serialized__ = utils.serializeException(err, this.maxNestingLevel);
 
         err = new Error(message);
       } else {
