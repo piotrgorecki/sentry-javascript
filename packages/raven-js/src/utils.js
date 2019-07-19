@@ -4,10 +4,10 @@ var _window =
   typeof window !== 'undefined'
     ? window
     : typeof global !== 'undefined'
-      ? global
-      : typeof self !== 'undefined'
-        ? self
-        : {};
+    ? global
+    : typeof self !== 'undefined'
+    ? self
+    : {};
 
 function isObject(what) {
   return typeof what === 'object' && what !== null;
@@ -484,7 +484,7 @@ function safeJoin(input, delimiter) {
 }
 
 // Default Node.js REPL depth
-var MAX_SERIALIZE_EXCEPTION_DEPTH = 3;
+var MAX_SERIALIZE_EXCEPTION_DEPTH = 10;
 // 50kB, as 100kB is max payload size, so half sounds reasonable
 var MAX_SERIALIZE_EXCEPTION_SIZE = 50 * 1024;
 var MAX_SERIALIZE_KEYS_LENGTH = 40;
